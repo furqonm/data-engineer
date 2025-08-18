@@ -41,7 +41,7 @@ def run():
        | 'GetCSV' >> beam.io.ReadFromText(input_file)
        | 'ParseCSV' >> beam.Map(parse_csv)
        | 'GroupAndSum' >> beam.CombinePerKey(sum)
-       | 'FormatOutput' >> beam.Map(lambda (key, value): 'Vendor ID: {}, Total Amount: {}'.format(key, value))
+       | 'FormatOutput' >> beam.Map(lambda key_value: 'Vendor ID: {}, Total Amount: {}'.format(key_value[0], key_value[1]))
        | 'write' >> beam.io.WriteToText(output_prefix)
     )
 
