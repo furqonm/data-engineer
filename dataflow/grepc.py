@@ -15,17 +15,19 @@ limitations under the License.
 
 import apache_beam as beam
 
-# Fungsi untuk memparsing baris CSV
-def parse_csv(line):
-    # Skip header
-    if line.startswith('vendor_id'):
-        return None  # Lebih eksplisit mengembalikan None
-    # Pecah baris berdasarkan koma
-    parts = line.split(',')
-    # Dapatkan vendor_id (indeks 0) dan total_amount (indeks 14)
-    vendor_id = parts[0]
-    total_amount = float(parts[14])
-    return (vendor_id, total_amount)
+# Fungsi untuk memparsing dan membuang header
+def parse_and_filter_csv(line):
+    # Buang header
+    if not line.startswith('vendor_id'):
+        parts = line.split(',')
+        try:
+            vendor_id = parts[0]
+            total_amount = float(parts[14])
+            # Menggunakan yield untuk menghasilkan elemen valid
+            yield (vendor_id, total_amount)
+        except (ValueError, IndexError):
+            # Abaikan baris yang rusak atau tidak valid
+            pass
 
 PROJECT = 'qwiklabs-gcp-04-761ec0adb4a4'
 BUCKET = 'qwiklabs-gcp-04-761ec0adb4a4'
@@ -51,8 +53,7 @@ def run():
     # Membaca data CSV dan melakukan agregasi
     (p 
        | 'GetCSV' >> beam.io.ReadFromText(input_file)
-       | 'ParseCSV' >> beam.Map(parse_csv)
-       | 'FilterNone' >> beam.Filter(lambda x: x is not None)
+       | 'ParseAndFilter' >> beam.FlatMap(parse_and_filter_csv)
        | 'GroupAndSum' >> beam.CombinePerKey(sum)
        | 'FormatOutput' >> beam.Map(lambda key_value: 'Vendor ID: {}, Total Amount: {}'.format(key_value[0], key_value[1]))
        | 'write' >> beam.io.WriteToText(output_prefix)
