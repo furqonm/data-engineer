@@ -9,10 +9,13 @@ for each passenger count, and writes the results to a new file in GCS.
 import apache_beam as beam
 import sys
 
+# The fix: Explicitly import the Mean transform from the combiners module.
+from apache_beam.transforms import combiners
+
 # Define your Google Cloud configuration
 # You MUST update these values with your specific project and bucket details.
 # The REGION is provided by your qwiklabs environment.
-PROJECT = 'cloud-training-demos' 
+PROJECT = 'cloud-training-demos'
 BUCKET = 'cloud-training-demos'
 REGION = 'qwiklabs-provided-region'
 
@@ -49,7 +52,6 @@ def run():
         '--temp_location=gs://{0}/temp/'.format(BUCKET),
         '--region={0}'.format(REGION),
         '--runner=DataflowRunner'
-        '--setup_file=./setup.py'
     ]
 
     # Create the pipeline object with the defined options
@@ -63,9 +65,10 @@ def run():
         )
         
         # Step 2: Calculate the average for each key using a powerful pre-built transform.
+        # We now call Mean.PerKey() directly since we imported it.
         average_distance_per_passenger = (
             keyed_data
-            | 'CalculateAverage' >> beam.Mean.PerKey()
+            | 'CalculateAverage' >> combiners.Mean.PerKey()
         )
         
         # Step 3: Format the results for writing to GCS.
