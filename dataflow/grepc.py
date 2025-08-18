@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import apache_beam as beam
-import csv
 
 # Define your Google Cloud configuration
 # You MUST update these values with your specific project and bucket details.
@@ -16,25 +15,27 @@ OUTPUT_PREFIX = 'gs://{0}/avg_distance_by_passengers/output'.format(BUCKET)
 
 def parse_csv_line(line):
     """
-    Parses a CSV line and returns a dictionary.
-    Assumes the first line is the header.
+    Parses a CSV line, skipping the header and handling potential errors.
+    Returns a (key, value) tuple for valid rows.
     """
-    try:
-        # Menghindari baris header
-        if line.startswith('passenger_count'):
-            return None
-            
-        fields = list(csv.reader([line]))[0]
-        
-        # Kolom yang relevan
-        passenger_count = int(fields[0])
-        trip_distance = float(fields[1])
-        
-        # Mengembalikan PCollection dalam bentuk key-value pair
-        return (passenger_count, trip_distance)
-    except (ValueError, IndexError):
-        # Mengabaikan baris yang tidak valid
+    # Skip header row
+    if line.startswith('passenger_count'):
         return None
+        
+    # Use a simple split for parsing, which is more resilient to certain data issues
+    fields = line.split(',')
+    
+    try:
+        # Check if we have at least 2 fields
+        if len(fields) >= 2:
+            passenger_count = int(fields[0])
+            trip_distance = float(fields[1])
+            return (passenger_count, trip_distance)
+    except (ValueError, IndexError):
+        # Ignore any lines that cannot be converted to int or float
+        return None
+    
+    return None
 
 def run():
     argv = [
