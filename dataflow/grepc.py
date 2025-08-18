@@ -1,92 +1,65 @@
 #!/usr/bin/env python
 
-"""
-Apache Beam pipeline to be run on Google Cloud Dataflow.
-It reads a CSV file from GCS, calculates the average trip distance
-for each passenger count, and writes the results to a new file in GCS.
-"""
-
 import apache_beam as beam
-import sys
-
-# The fix: Explicitly import the Mean transform from the combiners module.
-from apache_beam.transforms import combiners
+import csv
 
 # Define your Google Cloud configuration
 # You MUST update these values with your specific project and bucket details.
 # The REGION is provided by your qwiklabs environment.
-PROJECT = 'cloud-training-demos'
-BUCKET = 'cloud-training-demos'
-REGION = 'qwiklabs-provided-region'
+PROJECT = 'qwiklabs-gcp-03-3369e29fea80'
+BUCKET = 'qwiklabs-gcp-03-3369e29fea80'
+REGION = 'us-east1'
 
 # GCS path for the input file and output directory
 INPUT_FILE = 'gs://cloud-training/OCBL013/nyc_tlc_yellow_trips_2018_subset_1.csv'
 OUTPUT_PREFIX = 'gs://{0}/avg_distance_by_passengers/output'.format(BUCKET)
 
-def parse_csv_and_prepare_for_agg(line):
+def parse_csv_line(line):
     """
-    Parses a CSV line and returns a (key, value) tuple for aggregation.
-    Key: passenger_count (int)
-    Value: trip_distance (float)
+    Parses a CSV line and returns a dictionary.
+    Assumes the first line is the header.
     """
     try:
-        fields = line.split(',')
-        # Return a (key, value) tuple where key is passenger count
-        # and value is trip distance.
-        # This will be used by beam.Mean.PerKey().
-        return (int(fields[0]), float(fields[1]))
+        # Menghindari baris header
+        if line.startswith('passenger_count'):
+            return None
+            
+        fields = list(csv.reader([line]))[0]
+        
+        # Kolom yang relevan
+        passenger_count = int(fields[0])
+        trip_distance = float(fields[1])
+        
+        # Mengembalikan PCollection dalam bentuk key-value pair
+        return (passenger_count, trip_distance)
     except (ValueError, IndexError):
-        # Ignore malformed lines and the header
+        # Mengabaikan baris yang tidak valid
         return None
 
 def run():
-    """
-    Configures and runs the Apache Beam pipeline on Dataflow.
-    """
-    # Create the pipeline options
     argv = [
-        '--project={0}'.format(PROJECT),
-        '--job_name=calculate-avg-distance-job',  # A unique job name is required
-        '--save_main_session', # Required for some custom classes/functions
-        '--staging_location=gs://{0}/staging/'.format(BUCKET),
-        '--temp_location=gs://{0}/temp/'.format(BUCKET),
-        '--region={0}'.format(REGION),
-        '--runner=DataflowRunner'
+      '--project={0}'.format(PROJECT),
+      '--job_name=agregat-data-csv',
+      '--save_main_session',
+      '--staging_location=gs://{0}/staging/'.format(BUCKET),
+      '--temp_location=gs://{0}/temp/'.format(BUCKET),
+      '--region={0}'.format(REGION),
+      '--runner=DataflowRunner'
     ]
 
-    # Create the pipeline object with the defined options
-    with beam.Pipeline(argv=argv) as p:
-        # Step 1: Read, Parse, and Prepare the data.
-        keyed_data = (
-            p 
-            | 'ReadFromGCS' >> beam.io.ReadFromText(INPUT_FILE, skip_header_lines=1)
-            | 'ParseAndKey' >> beam.Map(parse_csv_and_prepare_for_agg)
-            | 'FilterNone' >> beam.Filter(lambda item: item is not None)
-        )
-        
-        # Step 2: Calculate the average for each key using a powerful pre-built transform.
-        # We now call Mean.PerKey() directly since we imported it.
-        average_distance_per_passenger = (
-            keyed_data
-            | 'CalculateAverage' >> combiners.Mean.PerKey()
-        )
-        
-        # Step 3: Format the results for writing to GCS.
-        # The output of beam.Mean.PerKey() is a PCollection of (key, average) tuples.
-        formatted_results = (
-            average_distance_per_passenger
-            | 'FormatResults' >> beam.Map(
-                # The input to this lambda is a single tuple, let's call it 'item'
-                # The tuple will be in the format: (passenger_count, avg_distance)
-                lambda item: 
-                'Passenger Count: {}, Average Distance: {:.2f}'.format(
-                    item[0], item[1]
-                )
-            )
-        )
+    p = beam.Pipeline(argv=argv)
+    
+    (p
+     | 'ReadFromCSV' >> beam.io.ReadFromText(INPUT_FILE)
+     | 'ParseCSV' >> beam.Map(parse_csv_line)
+     | 'FilterNone' >> beam.Filter(lambda x: x is not None)
+     | 'GroupByKey' >> beam.GroupByKey()
+     | 'CalculateAverage' >> beam.Map(lambda x: (x[0], sum(x[1])/len(x[1])))
+     | 'FormatOutput' >> beam.Map(lambda x: f"Jumlah penumpang: {x[0]}, Rata-rata jarak: {x[1]:.2f}")
+     | 'WriteResults' >> beam.io.WriteToText(OUTPUT_PREFIX)
+    )
 
-        # Step 4: Write the results to a new file in the specified GCS bucket.
-        formatted_results | 'WriteResults' >> beam.io.WriteToText(OUTPUT_PREFIX)
+    p.run().wait_until_finish()
 
 if __name__ == '__main__':
     run()
