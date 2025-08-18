@@ -29,7 +29,7 @@ REGION = 'europe-west4'
 def run():
     argv = [
       '--project={0}'.format(PROJECT),
-      '--job_name=aggregat-data-csv',
+      '--job_name=lab-aggregate-csv',
       '--save_main_session',
       '--staging_location=gs://{0}/staging/'.format(BUCKET),
       '--temp_location=gs://{0}/staging/'.format(BUCKET),
