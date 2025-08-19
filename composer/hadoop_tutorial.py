@@ -13,7 +13,7 @@ from airflow.models.variable import Variable
 from airflow.providers.google.cloud.operators.dataproc import (
     DataprocCreateClusterOperator,
     DataprocDeleteClusterOperator,
-    DataprocSubmitHadoopJobOperator,
+    DataprocSubmitJobOperator,
 )
 from airflow.utils.trigger_rule import TriggerRule
 
@@ -44,10 +44,8 @@ default_dag_args = {
 # [START composer_hadoop_schedule]
 with DAG(
     'composer_hadoop_tutorial',
-    # Continue to run DAG once per day
     schedule_interval=datetime.timedelta(days=1),
     default_args=default_dag_args,
-    # Set catchup=False to prevent backfilling past DAG runs
     catchup=False
 ) as dag:
     # [END composer_hadoop_schedule]
@@ -55,32 +53,36 @@ with DAG(
     # Create a Cloud Dataproc cluster.
     create_dataproc_cluster = DataprocCreateClusterOperator(
         task_id='create_dataproc_cluster',
-        # Give the cluster a unique name by appending the date scheduled.
         cluster_name='composer-hadoop-tutorial-cluster-{{ ds_nodash }}',
         num_workers=2,
         region=Variable.get('gce_region'),
         zone=Variable.get('gce_zone'),
-        # Using a recent Dataproc image is recommended for Composer 3.
         image_version='2.1',
         master_machine_type='e2-standard-2',
         worker_machine_type='e2-standard-2')
 
-    # Run the Hadoop wordcount example installed on the Cloud Dataproc cluster
-    # master node.
-    run_dataproc_hadoop = DataprocSubmitHadoopJobOperator(
+    # Run the Hadoop wordcount example using the corrected operator.
+    run_dataproc_hadoop = DataprocSubmitJobOperator(
         task_id='run_dataproc_hadoop',
-        region=Variable.get('gce_region'),
-        main_jar=WORDCOUNT_JAR,
-        cluster_name='composer-hadoop-tutorial-cluster-{{ ds_nodash }}',
-        arguments=wordcount_args)
+        project_id=Variable.get('gcp_project'),
+        region=Variable.get('gce_region'),  # <-- CORRECTED: Changed 'location' back to 'region'
+        job={
+            'placement': {
+                'cluster_name': 'composer-hadoop-tutorial-cluster-{{ ds_nodash }}'
+            },
+            'hadoop_job': {
+                'main_jar_file_uri': WORDCOUNT_JAR,
+                'args': wordcount_args,
+            },
+        },
+    )
 
     # Delete Cloud Dataproc cluster.
     delete_dataproc_cluster = DataprocDeleteClusterOperator(
         task_id='delete_dataproc_cluster',
+        project_id=Variable.get('gcp_project'),
         region=Variable.get('gce_region'),
         cluster_name='composer-hadoop-tutorial-cluster-{{ ds_nodash }}',
-        # Setting trigger_rule to ALL_DONE causes the cluster to be deleted
-        # even if the Dataproc job fails.
         trigger_rule=TriggerRule.ALL_DONE)
 
     # [START composer_hadoop_steps]
