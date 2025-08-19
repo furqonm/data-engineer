@@ -23,7 +23,7 @@ _[DISCLAIMER] The links and materials provided here are intended as supplementar
 
 - [Professional Data Engineer Sample Questions](https://docs.google.com/forms/d/e/1FAIpQLSfkWEzBCP0wQ09ZuFm7G2_4qtkYbfmk_0getojdnPdCYmq37Q/viewform?pli=1)
 - [Examtopics: Google Professional Data Engineer Exam](https://www.examtopics.com/exams/google/professional-data-engineer/)
-  > Use this form to simulate the exam environment and get a feel for the types of questions you'll encounter.
+  > Use this form to simulate the exam questions and get a feel for the types of questions you'll encounter.
 
 - [Google Cloud Professional Data Engineer - The Certified Q&A for GCP](https://www.youtube.com/watch?v=7UOX2R-xf8I&list=PLQMsfKRZZviSLraRoqXulcMKFvIXQkHdA&ab_channel=AwesomeGCP)
   > Practice with these sample questions and their explanations to understand the reasoning behind the correct answers.
