@@ -1,6 +1,6 @@
 ### Google Cloud Professional Data Engineer (PDE) Certification Preparation
 
-_[DISCLAIMER] The links and materials provided here are intended as supplementary resources for learning. This personally documented material does not represent official information from Google Cloud, although some of it is sourced from official Google Cloud resources. Unofficial materials indicate that the content is not direct information from Google._
+_[DISCLAIMER] The links and materials provided here are intended as supplementary resources for learning. This personally documented material does not represent official information from Google Cloud, although some of it is sourced from official Google Cloud resources._
 
 ---
 ## Exam Preparation Materials
