@@ -1,7 +1,3 @@
-Here is the Markdown documentation for **Data Skew**, optimized for your GitHub repository. This guide explains how to identify and mitigate "hot keys" that cause uneven workload distribution in BigQuery.
-
----
-
 # BigQuery Optimization: Handling Data Skew (Hot Keys) ⚖️
 
 **Data Skew** occurs when data is partitioned or grouped by a key where one value (the "hot key") appears significantly more often than others. In BigQuery, this causes one "slot" or worker to do 90% of the work while others sit idle, leading to high **Max Time** vs. low **Avg Time** in your query plan.
@@ -67,7 +63,3 @@ ORDER BY
   total_views DESC;
 
 ```
-
-*Created for the BigQuery Performance Optimization Guide.*
-
-Would you like me to add this to a **Table of Contents** for your main `README.md`?
