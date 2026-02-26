@@ -27,10 +27,11 @@ def parse_and_filter_csv(line):
             # `pass` ignores these invalid rows.
             pass
 
-# Defines the Google Cloud Platform project, bucket, and region to be used.
+# ========== Change project, bucket, and region ===========
 PROJECT = 'qwiklabs-gcp-03-396637544609'
 BUCKET = 'qwiklabs-gcp-03-396637544609'
 REGION = 'europe-west4'
+# =========================================================
 
 # This is the main function that sets up and runs the Apache Beam pipeline.
 def run():
