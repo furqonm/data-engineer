@@ -38,12 +38,11 @@ Because **JOIN** happens early in the flow (Step 2), a "Join Explosion" (Cartesi
 * If you join on non-unique keys, the row count "explodes" before it even reaches the filter or aggregation stages.
 * **Fix**: Use a subquery or CTE to **GROUP BY** (pre-aggregate) one side of the join so that the join key is unique.
 
----
+#### 4. How BigQuery Aggregates
 
-### Putting it Together for GitHub
+BigQuery does NOT use a single worker for `SUM` or `COUNT`. It uses a **Two-Stage Approach**:
+1. **Distributed Stage**: Many workers calculate partial results from storage shards.
+2. **Shuffle Stage**: Data is re-organized by key across the network.
+3. **Final Stage**: Results are merged into the final output.
 
-If you are adding this to your repository, you might summarize it like this:
-
-> **Execution Tip**: BigQuery is a distributed system. The goal is to use the **FROM**, **JOIN**, and **WHERE** stages to discard as much data as possible before the **GROUP BY** stage shuffles data across the network.
-
-Would you like me to help you create a specific Markdown table for your GitHub `README.md` that compares **Written Order** vs. **Execution Order**?
+**Warning**: `COUNT(DISTINCT)` forces a heavy shuffle. If performance is slow, check your Query Plan for high "Shuffle" volume or use `APPROX_COUNT_DISTINCT`.
