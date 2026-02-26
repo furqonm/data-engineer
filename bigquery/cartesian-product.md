@@ -1,7 +1,3 @@
-This Markdown documentation is optimized for GitHub, utilizing syntax highlighting, clear hierarchies, and callouts to make the technical concepts easy to digest for your repository visitors.
-
----
-
 # BigQuery Optimization: Avoiding Join Explosions 💥
 
 When joining tables in BigQuery, a **Join Explosion** (Cartesian product) can occur if your join keys are not unique on both sides. This leads to incorrect data, inflated costs, and slow performance.
@@ -80,18 +76,3 @@ JOIN unique_promos p ON s.Product_ID = p.Product_ID
 GROUP BY 1
 
 ```
-
----
-
-## 💡 Key Takeaways for GitHub Contributors
-
-* **Check the Query Plan:** If the "Output Rows" are significantly higher than "Input Rows," you likely have a Join Explosion.
-* **Join Keys:** Always confirm the cardinality (one-to-one, one-to-many, or many-to-many) of your join keys.
-* **Pre-aggregate:** Use `GROUP BY` in a subquery or CTE to reduce one side of the join to unique values.
-* **Clustering Matters:** For massive tables, ensure your join keys are **clustered** to take advantage of BigQuery's block-skipping optimizations.
-
----
-
-*Created for the BigQuery Performance Optimization Guide.*
-
-Would you like me to help you create a **README.md** file that links this technical note to other BigQuery optimization tips?
