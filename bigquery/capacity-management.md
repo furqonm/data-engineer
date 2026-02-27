@@ -46,6 +46,6 @@ If you detect performance degradation, follow this decision matrix before scalin
 
 Before purchasing slots, ensure the queries are not suffering from common "wasteful" behaviors:
 
-* **Join Explosions**: Check if output rows are exponentially higher than input rows.
-* **Expression Order**: Ensure the most selective `WHERE` filters run first.
-* **Data Skew**: Use the Query Plan to see if `Max worker time` is much higher than `Avg worker time`.
+* **[Join Explosions](https://github.com/furqonm/data-engineer/blob/main/bigquery/cartesian-product.md)**: Check if output rows are exponentially higher than input rows.
+* **[Expression Order](https://github.com/furqonm/data-engineer/blob/main/bigquery/where-placing.md)**: Ensure the most selective `WHERE` filters run first.
+* **[Data Skew](https://github.com/furqonm/data-engineer/blob/main/bigquery/data-skew.md)**: Use the Query Plan to see if `Max worker time` is much higher than `Avg worker time`.
