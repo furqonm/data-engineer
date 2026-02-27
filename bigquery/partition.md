@@ -27,7 +27,11 @@ CREATE OR REPLACE TABLE `my_project.my_dataset.ingestion_logs`
   severity STRING
 )
 -- Using ingestion time partitioning
-PARTITION BY DATE(_PARTITIONTIME);
+PARTITION BY DATE(_PARTITIONTIME)
+OPTIONS (
+  partition_expiration_days = 3,
+  require_partition_filter = TRUE
+);
 
 ```
 
@@ -42,7 +46,8 @@ CREATE OR REPLACE TABLE `my_project.my_dataset.sales_data`
 )
 PARTITION BY order_date
 OPTIONS (
-  require_partition_filter = TRUE -- Prevent full table scans by requiring a WHERE clause
+  partition_expiration_days = 3,
+  require_partition_filter = TRUE
 );
 
 ```
@@ -55,7 +60,10 @@ CREATE OR REPLACE TABLE `my_project.my_dataset.user_logs`
   user_id INT64,
   action STRING
 )
-PARTITION BY RANGE_BUCKET(user_id, GENERATE_ARRAY(0, 1000000, 100000));
+PARTITION BY RANGE_BUCKET(user_id, GENERATE_ARRAY(0, 1000000, 100000))
+OPTIONS (
+  require_partition_filter = TRUE
+);
 
 ```
 
