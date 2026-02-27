@@ -1,6 +1,6 @@
 # 🚦 BigQuery Capacity & Job Scheduling Management
 
-Managing a high-performance BigQuery environment requires balancing real-time user needs against heavy background workloads. Understanding how BigQuery handles job transitions is key to maintaining a smooth experience.
+Managing a high-performance BigQuery environment requires balancing real-time user needs against heavy background workloads. Understanding [how BigQuery handles job transitions](https://docs.cloud.google.com/bigquery/docs/query-overview#types_of_queries) is key to maintaining a smooth experience.
 
 ## 1. Job Priority & Deferral Logic
 
@@ -8,7 +8,7 @@ BigQuery uses a "deferral" mechanism to control traffic and ensure that human us
 
 | Priority | Deferral Behavior | Use Case |
 | --- | --- | --- |
-| **INTERACTIVE** ⚡ | **Never.** Jobs transition to `RUNNING` as soon as slots are available. | CEO dashboards, ad-hoc analysis, real-time debugging. |
+| **INTERACTIVE** ⚡ | **Never.** Jobs transition to `RUNNING` as soon as [slots](https://docs.cloud.google.com/bigquery/docs/slots) are available. | CEO dashboards, ad-hoc analysis, real-time debugging. |
 | **BATCH** 🕒 | **Always deferred at least 1 minute.** Deferral lasts longer if quota is low or the server is at capacity. | Scheduled ETL, nightly reports, non-critical data syncs. |
 
 > [!IMPORTANT]
