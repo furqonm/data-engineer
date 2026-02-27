@@ -69,4 +69,4 @@ When analyzing your **Query Plan**, use these signals to decide if your clusteri
 | **Read Stage Pruning** 🧹 | Query Plan shows `between` filters. | **Success!** BigQuery is successfully skipping blocks using your cluster keys. |
 
 > [!TIP]
-> **Expression Order:** Remember that BigQuery does not reorder your `WHERE` clause. Place your most selective clustered filters first to minimize CPU usage early in the execution flow.
+> [**Expression Order:**](https://github.com/furqonm/data-engineer/blob/main/bigquery/execution-order.md) Remember that BigQuery does not reorder your `WHERE` clause. Place your most selective clustered filters first to minimize CPU usage early in the execution flow.
