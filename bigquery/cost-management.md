@@ -9,7 +9,7 @@ You can set daily limits on the amount of data processed to cap expenditures.
 * **Project-level controls**: Limits the total aggregate bytes processed by all users within a specific project.
 * **User-level controls**: Limits the bytes processed by a specific user within a project.
 
-### How to Configure:
+### How to Configure [Custom Quotas](https://docs.cloud.google.com/bigquery/docs/custom-quotas#set-custom-quotas):
 
 1. Navigate to the **IAM & Admin** > **Quotas** page in the Google Cloud Console.
 2. Search for **"Query usage per day"**.
