@@ -22,14 +22,14 @@ You can set daily limits on the amount of data processed to cap expenditures.
 
 This setting acts as a "safety fuse." If a query is estimated to scan more data than your limit, BigQuery will fail the job before it even starts, charging you $0.
 
-### Method A: Using the BigQuery UI
+### Method A: [Using the BigQuery UI](https://docs.cloud.google.com/bigquery/docs/best-practices-costs#restrict-bytes-billed)
 
 1. In the SQL Editor, click on **More** > **Query settings**.
 2. Expand **Advanced options**.
 3. Check the box for **"Maximum bytes billed"**.
 4. Enter the limit (e.g., `1000000000` for 1 GB).
 
-### Method B: Using the `bq` Command Line
+### Method B: [Using the `bq` Command Line](https://docs.cloud.google.com/bigquery/docs/reference/bq-cli-reference#flags_and_arguments_14)
 
 You can enforce this limit using the `--maximum_bytes_billed` flag in the Cloud SDK:
 
