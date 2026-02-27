@@ -71,7 +71,7 @@ OPTIONS (
 
 ## 3. Partition Expiration & Automated Deletion
 
-To manage storage costs, you can set a lifecycle policy so that data is automatically deleted after a certain period.
+To manage storage costs, you can set a [lifecycle policy](https://docs.cloud.google.com/bigquery/docs/managing-partitioned-tables#partition-expiration) so that data is automatically deleted after a certain period.
 
 ### A. Setting Expiration via DDL
 
