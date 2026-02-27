@@ -8,9 +8,9 @@ BigQuery supports three distinct methods for segmenting your data:
 
 | Method | Technical Implementation | Primary Use Case |
 | --- | --- | --- |
-| **Time-unit column** | Partitioned based on a `DATE` or `TIMESTAMP` column explicitly defined in your schema. | Sales data partitioned by a business-relevant `order_date`. |
-| **Ingestion time** | BigQuery automatically creates partitions based on when data arrives using the **`_PARTITIONTIME`** pseudo-column. | High-velocity logs or streaming data where no internal date column is available. |
-| **Integer range** | Partitioned based on a range of integers in a specific column. | Segmenting massive datasets by numeric IDs (e.g., `user_id` blocks). |
+| [**Ingestion time**](https://docs.cloud.google.com/bigquery/docs/creating-partitioned-tables#create_an_ingestion-time_partitioned_table) | BigQuery automatically creates partitions based on when data arrives using the **`_PARTITIONTIME`** pseudo-column. | High-velocity logs or streaming data where no internal date column is available. |
+| [**Time-unit column**](https://docs.cloud.google.com/bigquery/docs/creating-partitioned-tables#create_a_time-unit_column-partitioned_table) | Partitioned based on a `DATE` or `TIMESTAMP` column explicitly defined in your schema. | Sales data partitioned by a business-relevant `order_date`. |
+| [**Integer range**](https://docs.cloud.google.com/bigquery/docs/creating-partitioned-tables#create_an_integer-range_partitioned_table) | Partitioned based on a range of integers in a specific column. | Segmenting massive datasets by numeric IDs (e.g., `user_id` blocks). |
 
 ---
 
