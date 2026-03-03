@@ -15,6 +15,7 @@ BigQuery processes your query in a specific sequence to minimize data movement a
 | **5** | 🧪 **HAVING** | Filters results **after** the aggregation is complete. |
 | **6** | 💎 **SELECT** | Finalizes columns and calculates remaining expressions/aliases. |
 | **7** | 🏁 **ORDER BY** | Sorts the final dataset (typically the most expensive single-worker task). |
+| **8** | 🛑 **LIMIT** | Discards all but the specified number of rows from the final result set. |
 
 ---
 
@@ -42,6 +43,14 @@ BigQuery assumes the user has provided the best order and **does not attempt to 
 
 * **Diagnosis**: Check the Query Plan for `Output Rows` being much higher than `Input Rows`.
 * **The Fix**: Use a subquery or CTE to `GROUP BY` (pre-aggregate) your data before the join to ensure keys are unique.
+
+### 4. The `LIMIT` Misconception
+
+> [!CAUTION]
+> **LIMIT does not reduce scan costs:** Because BigQuery uses columnar storage, a `LIMIT` clause does not stop the engine from scanning the entire column. It only reduces the amount of data returned to the UI/API.
+
+* **When to use**: Use `LIMIT` to prevent the "Response too large" error or to sample data for preview.
+* **Performance Tip**: When combined with `ORDER BY`, BigQuery uses a **Top-K algorithm**, which is much more efficient than a full sort because it only keeps the "top" N rows in memory.
 
 ---
 
