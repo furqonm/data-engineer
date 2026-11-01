@@ -1,3 +1,26 @@
+# Parallel Processing with Cloud Composer
+
+This guide extends the baseline `hadoop_tutorial.py` DAG to demonstrate **fan-out / fan-in parallel execution** in Cloud Composer (Apache Airflow) without needing any external resources beyond what the lab already allows.
+
+Instead of running a single `wordcount` task sequentially, the DAG spins up the ephemeral Dataproc cluster once, runs **three different MapReduce jobs in parallel** using the built-in `hadoop-mapreduce-examples.jar` against `gs://pub/shakespeare/rose.txt`, and tears down the cluster only after all three jobs finish.
+
+---
+
+## What Runs in Parallel
+
+`hadoop-mapreduce-examples.jar` on every Dataproc cluster bundles multiple MapReduce utilities. We run three of them side by side against `gs://pub/shakespeare/rose.txt`:
+
+| Task ID | MapReduce Program | Arguments | Output Path in GCS (`gcs_bucket`) | What It Does |
+|---|---|---|---|---|
+| `run_wordcount` | `wordcount` | `['wordcount', input_file, wordcount_output]` | `<gcs_bucket>/wordcount/<timestamp>/` | Counts how many times each word appears in `rose.txt`. |
+| `run_wordmean` | `wordmean` | `['wordmean', input_file, wordmean_output]` | `<gcs_bucket>/wordmean/<timestamp>/` | Calculates the average character length of words in `rose.txt`. |
+| `run_grep_keyword` | `grep` | `['grep', input_file, grep_output, 'rose']` | `<gcs_bucket>/grep_rose/<timestamp>/` | Searches for and counts matches of the pattern `"rose"`. |
+
+---
+
+## DAG Script (`hadoop_tutorial.py`)
+
+```python
 # [START composer_hadoop_tutorial]
 """Example Airflow DAG that creates an ephemeral Cloud Dataproc cluster,
 runs three Hadoop MapReduce jobs in parallel (WordCount, WordMean, and Grep)
@@ -125,3 +148,16 @@ with DAG(
     # [END composer_hadoop_steps]
 
 # [END composer_hadoop_tutorial]
+```
+
+---
+
+## Key Points to Show Participants
+
+1. **Fan-out / Fan-in Dependency Syntax:**
+   ```python
+   create_dataproc_cluster >> [run_wordcount, run_wordmean, run_grep_keyword] >> delete_dataproc_cluster
+   ```
+   In the Airflow **Graph View**, participants will see `create_dataproc_cluster` branch out into three parallel tasks that run at the same time on the Dataproc cluster, then converge into `delete_dataproc_cluster`.
+2. **Separate Output Directories:** Each parallel job writes to its own folder in GCS (`wordcount/`, `wordmean/`, and `grep_rose/`) because Hadoop MapReduce fails if two jobs try to create the same output directory simultaneously.
+3. **`TriggerRule.ALL_DONE` on Teardown:** `delete_dataproc_cluster` waits until all three upstream jobs have finished (whether they succeeded or failed) before deleting the cluster.
