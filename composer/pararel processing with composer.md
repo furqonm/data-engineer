@@ -67,8 +67,8 @@ from airflow.utils.trigger_rule import TriggerRule
 # Base output path using Jinja {{ ts_nodash }} so DAG definition remains static across parses.
 gcs_bucket = Variable.get('gcs_bucket')
 wordcount_output = os.path.join(gcs_bucket, 'wordcount', '{{ ts_nodash }}') + os.sep
-wordmean_output = os.path.join(gcs_bucket, 'wordmean', '{{ ts_nodash }}') + os.sep
-grep_output = os.path.join(gcs_bucket, 'grep_rose', '{{ ts_nodash }}') + os.sep
+grep_rose_output = os.path.join(gcs_bucket, 'grep_rose', '{{ ts_nodash }}') + os.sep
+grep_name_output = os.path.join(gcs_bucket, 'grep_name', '{{ ts_nodash }}') + os.sep
 
 # Path to Hadoop MapReduce examples JAR available on every Dataproc cluster.
 EXAMPLES_JAR = (
@@ -126,30 +126,30 @@ with DAG(
         },
     )
 
-    # 2B. Parallel Job 2: Calculate average word length in the text (wordmean).
-    run_wordmean = DataprocSubmitJobOperator(
-        task_id='run_wordmean',
+    # 2B. Parallel Job 2: Search and count pattern matches for "rose" (grep).
+    run_grep_rose = DataprocSubmitJobOperator(
+        task_id='run_grep_rose',
         project_id=Variable.get('gcp_project'),
         region=Variable.get('gce_region'),
         job={
             'placement': {'cluster_name': cluster_name},
             'hadoop_job': {
                 'main_jar_file_uri': EXAMPLES_JAR,
-                'args': ['wordmean', input_file, wordmean_output],
+                'args': ['grep', input_file, grep_rose_output, 'rose'],
             },
         },
     )
 
-    # 2C. Parallel Job 3: Search and count pattern matches for "rose" (grep).
-    run_grep_keyword = DataprocSubmitJobOperator(
-        task_id='run_grep_keyword',
+    # 2C. Parallel Job 3: Search and count pattern matches for "name" (grep).
+    run_grep_name = DataprocSubmitJobOperator(
+        task_id='run_grep_name',
         project_id=Variable.get('gcp_project'),
         region=Variable.get('gce_region'),
         job={
             'placement': {'cluster_name': cluster_name},
             'hadoop_job': {
                 'main_jar_file_uri': EXAMPLES_JAR,
-                'args': ['grep', input_file, grep_output, 'rose'],
+                'args': ['grep', input_file, grep_name_output, 'name'],
             },
         },
     )
@@ -164,7 +164,7 @@ with DAG(
 
     # [START composer_hadoop_steps]
     # Define fan-out / fan-in DAG dependencies.
-    create_dataproc_cluster >> [run_wordcount, run_wordmean, run_grep_keyword] >> delete_dataproc_cluster
+    create_dataproc_cluster >> [run_wordcount, run_grep_rose, run_grep_name] >> delete_dataproc_cluster
     # [END composer_hadoop_steps]
 
 # [END composer_hadoop_tutorial]
@@ -192,8 +192,8 @@ gcloud storage cp hadoop_tutorial.py gs://$PROJECT_ID/
 | Task ID | MapReduce Program | Arguments | Output Path in GCS (`gcs_bucket`) | What It Does |
 |---|---|---|---|---|
 | `run_wordcount` | `wordcount` | `['wordcount', input_file, wordcount_output]` | `<gcs_bucket>/wordcount/{{ ts_nodash }}/` | Counts how many times each word appears in `rose.txt`. |
-| `run_wordmean` | `wordmean` | `['wordmean', input_file, wordmean_output]` | `<gcs_bucket>/wordmean/{{ ts_nodash }}/` | Calculates the average character length of words in `rose.txt`. |
-| `run_grep_keyword` | `grep` | `['grep', input_file, grep_output, 'rose']` | `<gcs_bucket>/grep_rose/{{ ts_nodash }}/` | Searches for and counts matches of the pattern `"rose"`. |
+| `run_grep_rose` | `grep` | `['grep', input_file, grep_rose_output, 'rose']` | `<gcs_bucket>/grep_rose/{{ ts_nodash }}/` | Searches for and counts matches of the keyword `"rose"`. |
+| `run_grep_name` | `grep` | `['grep', input_file, grep_name_output, 'name']` | `<gcs_bucket>/grep_name/{{ ts_nodash }}/` | Searches for and counts matches of the keyword `"name"`. |
 
 ---
 
@@ -223,8 +223,8 @@ from airflow.utils.trigger_rule import TriggerRule
 # Base output path using Jinja {{ ts_nodash }} so DAG definition remains static across parses.
 gcs_bucket = Variable.get('gcs_bucket')
 wordcount_output = os.path.join(gcs_bucket, 'wordcount', '{{ ts_nodash }}') + os.sep
-wordmean_output = os.path.join(gcs_bucket, 'wordmean', '{{ ts_nodash }}') + os.sep
-grep_output = os.path.join(gcs_bucket, 'grep_rose', '{{ ts_nodash }}') + os.sep
+grep_rose_output = os.path.join(gcs_bucket, 'grep_rose', '{{ ts_nodash }}') + os.sep
+grep_name_output = os.path.join(gcs_bucket, 'grep_name', '{{ ts_nodash }}') + os.sep
 
 # Path to Hadoop MapReduce examples JAR available on every Dataproc cluster.
 EXAMPLES_JAR = (
@@ -282,30 +282,30 @@ with DAG(
         },
     )
 
-    # 2B. Parallel Job 2: Calculate average word length in the text (wordmean).
-    run_wordmean = DataprocSubmitJobOperator(
-        task_id='run_wordmean',
+    # 2B. Parallel Job 2: Search and count pattern matches for "rose" (grep).
+    run_grep_rose = DataprocSubmitJobOperator(
+        task_id='run_grep_rose',
         project_id=Variable.get('gcp_project'),
         region=Variable.get('gce_region'),
         job={
             'placement': {'cluster_name': cluster_name},
             'hadoop_job': {
                 'main_jar_file_uri': EXAMPLES_JAR,
-                'args': ['wordmean', input_file, wordmean_output],
+                'args': ['grep', input_file, grep_rose_output, 'rose'],
             },
         },
     )
 
-    # 2C. Parallel Job 3: Search and count pattern matches for "rose" (grep).
-    run_grep_keyword = DataprocSubmitJobOperator(
-        task_id='run_grep_keyword',
+    # 2C. Parallel Job 3: Search and count pattern matches for "name" (grep).
+    run_grep_name = DataprocSubmitJobOperator(
+        task_id='run_grep_name',
         project_id=Variable.get('gcp_project'),
         region=Variable.get('gce_region'),
         job={
             'placement': {'cluster_name': cluster_name},
             'hadoop_job': {
                 'main_jar_file_uri': EXAMPLES_JAR,
-                'args': ['grep', input_file, grep_output, 'rose'],
+                'args': ['grep', input_file, grep_name_output, 'name'],
             },
         },
     )
@@ -320,7 +320,7 @@ with DAG(
 
     # [START composer_hadoop_steps]
     # Define fan-out / fan-in DAG dependencies.
-    create_dataproc_cluster >> [run_wordcount, run_wordmean, run_grep_keyword] >> delete_dataproc_cluster
+    create_dataproc_cluster >> [run_wordcount, run_grep_rose, run_grep_name] >> delete_dataproc_cluster
     # [END composer_hadoop_steps]
 
 # [END composer_hadoop_tutorial]
@@ -332,8 +332,8 @@ with DAG(
 
 1. **Fan-out / Fan-in Dependency Syntax:**
    ```python
-   create_dataproc_cluster >> [run_wordcount, run_wordmean, run_grep_keyword] >> delete_dataproc_cluster
+   create_dataproc_cluster >> [run_wordcount, run_grep_rose, run_grep_name] >> delete_dataproc_cluster
    ```
    In the Airflow **Graph View**, participants will see `create_dataproc_cluster` branch out into three parallel tasks that run at the same time on the Dataproc cluster, then converge into `delete_dataproc_cluster`.
-2. **Separate Output Directories:** Each parallel job writes to its own folder in GCS (`wordcount/`, `wordmean/`, and `grep_rose/`) because Hadoop MapReduce fails if two jobs try to create the same output directory simultaneously.
+2. **Separate Output Directories:** Each parallel job writes to its own folder in GCS (`wordcount/`, `grep_rose/`, and `grep_name/`) because Hadoop MapReduce fails if two jobs try to create the same output directory simultaneously.
 3. **`TriggerRule.ALL_DONE` on Teardown:** `delete_dataproc_cluster` waits until all three upstream jobs have finished (whether they succeeded or failed) before deleting the cluster.
