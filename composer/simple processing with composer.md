@@ -83,7 +83,7 @@ default_dag_args = {
 # [START composer_hadoop_schedule]
 with DAG(
     'composer_hadoop_tutorial',
-    schedule_interval=datetime.timedelta(days=1),
+    schedule=datetime.timedelta(days=1),
     default_args=default_dag_args,
     catchup=False
 ) as dag:
@@ -207,7 +207,7 @@ default_dag_args = {
 # [START composer_hadoop_schedule]
 with DAG(
     'composer_hadoop_tutorial',
-    schedule_interval=datetime.timedelta(days=1),
+    schedule=datetime.timedelta(days=1),
     default_args=default_dag_args,
     catchup=False
 ) as dag:
