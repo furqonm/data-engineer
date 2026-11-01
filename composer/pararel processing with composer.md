@@ -31,6 +31,9 @@ gcloud services enable artifactregistry.googleapis.com
 gcloud services enable container.googleapis.com
 gcloud services enable composer.googleapis.com
 gcloud services enable dataproc.googleapis.com
+
+# 3. Create Cloud Storage bucket named after the project ID (used as output bucket)
+gcloud storage buckets create gs://$PROJECT_ID --project=$PROJECT_ID
 ```
 
 ---
