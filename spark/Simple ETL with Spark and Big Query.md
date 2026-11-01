@@ -2,15 +2,15 @@
 
 Lab reference: [Use Serverless for Apache Spark to Load BigQuery](https://www.skills.google/focuses/102966?parent=catalog)
 
-In the original lab, we take `campaigns.avro` and load it into BigQuery using the `GCSTOBIGQUERY` Dataproc template. That works, but it's really just extract and load. Nothing happens to the data in between, so it's fair to ask why we'd use Spark at all when `bq load` can do the same thing.
+In the original lab, we take `campaigns.avro` and load it straight into BigQuery using the `GCSTOBIGQUERY` Dataproc template. That works, but nothing happens to the data in between—so participants often ask why we'd bother spinning up Spark when `bq load` can do the exact same thing in seconds.
 
-So for this demo I wrote a small PySpark script, `etl_campaign.py`, that cleans and reshapes the data before it lands in BigQuery. We'll run it as a batch job on Dataproc Serverless.
+For this demo, we use a custom PySpark script (`etl_campaign.py`) that cleans and reshapes the data before writing it to BigQuery, and run it as a batch job on Dataproc Serverless.
 
 ---
 
 ## The source data
 
-`campaigns.avro` is tiny, just 10 rows of ad campaign data:
+`campaigns.avro` is small, just 10 rows of ad campaign data:
 
 | id | created_at | period | campaign_name | amount | advertising_channel | bid_type |
 |---|---|---|---|---|---|---|
@@ -25,27 +25,25 @@ So for this demo I wrote a small PySpark script, `etl_campaign.py`, that cleans 
 | 237 | 2021-09-11 | 30 | EU - Search - Other | 86 | Search | CPC |
 | 296 | 2022-02-17 | 30 | EU - Search - Other | 64 | Search | CPC |
 
-Some things to point out:
+A few things worth pointing out in the raw data:
 
 - `created_at` is stored as a string, not a date.
-- `campaign_name` holds three values in one field: region, channel, and category.
-- `period` is the campaign length in days, so we can work out when each campaign ends and how much it spent per day.
-
-The script fixes all of these.
+- `campaign_name` packs three values into one field: region, channel, and category (e.g. `NA - Video - Promo`).
+- `period` is the campaign length in days, so we can calculate when each campaign ends and how much it spent per day.
 
 ---
 
-## Setup (run this before the demo)
+## Setup (run before the demo)
 
-My project ID and region are below. If you're starting a new lab session, swap in your own.
+Swap in your own project ID and region if you are running a fresh lab session.
 
 ### In Cloud Shell
 
 ```bash
-# Serverless Spark needs Private Google Access on the subnet
+# Serverless Spark requires Private Google Access on the subnet
 gcloud compute networks subnets update default --region=us-central1 --enable-private-ip-google-access
 
-# One bucket for the data and staging files, one for BigQuery temp files
+# One bucket for staging, one for BigQuery temp files
 gsutil mb -p qwiklabs-gcp-02-cb89e6ac26cc gs://qwiklabs-gcp-02-cb89e6ac26cc
 
 gsutil mb -p qwiklabs-gcp-02-cb89e6ac26cc gs://qwiklabs-gcp-02-cb89e6ac26cc-bqtemp
@@ -56,48 +54,25 @@ bq mk -d loadavro
 
 ### On the remote VM
 
-Go to Compute Engine > VM instances and SSH into `lab-vm`. Then run:
+Go to **Compute Engine > VM instances** and SSH into `lab-vm`.
+
+In this lab environment, the VM service account has restricted permissions on Cloud Storage buckets. Because of that, we don't upload local files from the VM to GCS. Instead, we download the files locally if we want to inspect them on the VM, and when we submit the Spark job, we point Dataproc directly to the public Cloud Storage buckets (`gs://furqon/etl_campaign.py` and `gs://cloud-training/.../campaigns.avro`).
+
+If you want to download the files on the VM to inspect them during the demo:
 
 ```bash
-# Get the Avro file and copy it to the bucket
+# Download the Avro file and the PySpark ETL script locally to review
 wget https://storage.googleapis.com/cloud-training/dataengineering/lab_assets/idegc/campaigns.avro
-
-gcloud storage cp campaigns.avro gs://qwiklabs-gcp-02-cb89e6ac26cc
-
-# Get the Dataproc templates (we'll work inside this folder)
-wget https://storage.googleapis.com/cloud-training/dataengineering/lab_assets/idegc/dataproc-templates.zip
-
-unzip dataproc-templates.zip
-
-cd dataproc-templates/python
+wget https://storage.googleapis.com/furqon/etl_campaign.py
 ```
 
 ---
 
-## Walking through etl_campaign.py
+## Walking through `etl_campaign.py`
 
-The script has four steps.
+The script is hosted at `gs://furqon/etl_campaign.py`. Here is the full code so we can walk through what it does step by step:
 
-**1. Read.** Load the Avro file from GCS into a DataFrame. We print the schema and the rows first so we can see what Spark picked up.
-
-**2. Clean up each row.** This part does the most work:
-
-- Split `campaign_name` on `-` to get `market_region` (NA / EU) and `campaign_category` (Brand / Promo / Other). We don't need a separate channel column because `advertising_channel` already exists.
-- Convert `created_at` to a real `DATE` called `start_date`, then add `period` days to get `end_date`.
-- Calculate `daily_spend` as `amount / period`.
-- Put each campaign in a `budget_tier`: 200 and above is High, 80 to 199 is Medium, below 80 is Low.
-- Add `etl_processed_at` so we know when the row was processed. This is a good habit in any pipeline.
-
-**3. Summarize.** Group by region, channel, and category, then calculate the campaign count, total spend, and average daily spend. This is the kind of table a dashboard would read from.
-
-**4. Write to BigQuery.** The detailed rows go to `loadavro.campaigns` and the summary goes to `loadavro.campaigns_summary`. One job, two tables.
-
-I kept the table name `campaigns` on purpose, because that's the table the original lab creates. That way the lab's progress check should still find it.
-
-To create the file on the VM, paste this whole block:
-
-```bash
-cat << 'EOF' > etl_campaign.py
+```python
 import sys
 import logging
 from pyspark.sql import SparkSession
@@ -185,28 +160,30 @@ if __name__ == "__main__":
         sys.exit(1)
 
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
-EOF
 ```
+
+What happens in the four steps:
+
+1. **Read.** Load `campaigns.avro` into a Spark DataFrame and print the schema and rows so we can see the raw input in the job logs.
+2. **Clean up each row.**
+   - Split `campaign_name` on `-` to pull out `market_region` (`NA`, `EU`) and `campaign_category` (`Brand`, `Promo`, `Other`).
+   - Cast `created_at` to a `DATE` (`start_date`), then add `period` days to get `end_date`.
+   - Compute `daily_spend` (`amount / period`) and assign a `budget_tier` (`High` for 200+, `Medium` for 80–199, `Low` for under 80).
+   - Add an `etl_processed_at` timestamp.
+3. **Summarize.** Group by region, channel, and category to calculate campaign count, total spend, and average daily spend.
+4. **Write to BigQuery.** Save the cleaned rows to `loadavro.campaigns` and the aggregated numbers to `loadavro.campaigns_summary`.
 
 ---
 
-## Running it on Dataproc Serverless
+## Running the job on Dataproc Serverless
 
-Still on the VM. First, copy the script to the bucket:
+From the VM (or Cloud Shell), run:
 
 ```bash
 export GCP_PROJECT=qwiklabs-gcp-02-cb89e6ac26cc
 export REGION=us-central1
 
-gcloud storage cp etl_campaign.py gs://$GCP_PROJECT/scripts/etl_campaign.py
-```
-
-Why not just submit the local file? If you pass a local `.py` file, gcloud has to upload it with `--deps-bucket`, and that first reads the bucket's metadata (`storage.buckets.get`). The VM runs as the Compute Engine default service account, and in this lab it can read and write objects but can't read bucket metadata. You'll get a permission error if you try. Uploading the script yourself with `gcloud storage cp` only needs object access, which is the same thing we did with `campaigns.avro`.
-
-Then submit the batch, pointing at the script in GCS:
-
-```bash
-gcloud dataproc batches submit pyspark gs://$GCP_PROJECT/scripts/etl_campaign.py \
+gcloud dataproc batches submit pyspark gs://furqon/etl_campaign.py \
     --project=$GCP_PROJECT \
     --region=$REGION \
     --version=1.1 \
@@ -214,26 +191,26 @@ gcloud dataproc batches submit pyspark gs://$GCP_PROJECT/scripts/etl_campaign.py
     --jars=file:///usr/lib/spark/external/spark-avro.jar,gs://cloud-training/dataengineering/lab_assets/idegc/spark-bigquery_2.12-20221021-2134.jar \
     -- \
     $GCP_PROJECT \
-    gs://$GCP_PROJECT/campaigns.avro \
+    gs://cloud-training/dataengineering/lab_assets/idegc/campaigns.avro \
     loadavro \
     $GCP_PROJECT-bqtemp
 ```
 
-Notes on the flags:
+A few notes on this command:
 
-- No `--deps-bucket`. The script and the JARs are already in GCS (or on the runtime image), so gcloud has nothing to upload.
-- `--version=1.1` and the `spark-avro.jar` path are the same ones the lab's own `bin/start.sh` uses. The BigQuery connector JAR is also the one the lab provides. I kept them identical so we know they work in this environment.
-- The four values after `--` are passed to the script as arguments: project, input file, dataset, and temp bucket.
+- Both the PySpark script (`gs://furqon/etl_campaign.py`) and the input data (`gs://cloud-training/.../campaigns.avro`) are read directly from public buckets, so we don't need `--deps-bucket` or any upload permissions from the VM.
+- `--version=1.1` and the two JAR paths (`spark-avro.jar` and `spark-bigquery`) match the runtime setup expected by this lab environment.
+- The four arguments after `--` are passed into `sys.argv` in `etl_campaign.py`: project ID, input Avro path, target BigQuery dataset, and the BigQuery temp bucket.
 
-The job takes a couple of minutes to start because Dataproc has to provision resources first. While you wait, open Dataproc > Serverless > Batches in the console and show participants the job. The output tab will show the `show()` results from each step, which helps connect the code to the data.
+The batch takes a couple of minutes to finish provisioning. You can track it in the console under **Dataproc > Serverless > Batches** and check the output logs to see the `show()` tables printed by Spark.
 
 ---
 
-## Checking the results
+## Checking the results in BigQuery
 
-When the batch shows `SUCCEEDED`, go to BigQuery and run:
+Once the batch status is `SUCCEEDED`, open BigQuery and query both tables.
 
-Detail table:
+Detail table (`loadavro.campaigns`):
 
 ```sql
 SELECT
@@ -253,7 +230,7 @@ FROM `loadavro.campaigns`
 ORDER BY amount DESC;
 ```
 
-Summary table:
+Summary table (`loadavro.campaigns_summary`):
 
 ```sql
 SELECT
