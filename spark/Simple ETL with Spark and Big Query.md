@@ -1,67 +1,70 @@
-# 🚀 Simple ETL with Apache Spark and BigQuery
+# Simple ETL with Spark and BigQuery
 
-> **Lab Reference:** [Use Serverless for Apache Spark to Load BigQuery](https://www.skills.google/focuses/102966?parent=catalog)
+Lab reference: [Use Serverless for Apache Spark to Load BigQuery](https://www.skills.google/focuses/102966?parent=catalog)
 
-In the standard lab scenario, you only perform a direct **EL (Extract & Load)** from an Avro file (`campaigns.avro`) into BigQuery using the pre-built `GCSTOBIGQUERY` Dataproc template. 
+In the original lab, we take `campaigns.avro` and load it into BigQuery using the `GCSTOBIGQUERY` Dataproc template. That works, but it's really just extract and load. Nothing happens to the data in between, so it's fair to ask why we'd use Spark at all when `bq load` can do the same thing.
 
-This guide extends the lab into a full **ETL (Extract, Transform, Load)** workflow using a standalone **PySpark** script (`etl_campaign.py`) on **Dataproc Serverless for Spark**, demonstrating why Apache Spark is used for data cleansing, feature engineering, and aggregation before loading into BigQuery.
-
----
-
-## 📊 1. Source Dataset Overview (`campaigns.avro`)
-
-The raw `campaigns.avro` file contains 10 marketing campaign records with the following schema and sample data:
-
-| `id` (long) | `created_at` (string) | `period` (long) | `campaign_name` (string) | `amount` (long) | `advertising_channel` (string) | `bid_type` (string) |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `81` | `"2020-09-17"` | `90` | `"NA - Video - Other"` | `41` | `"Video"` | `"CPC"` |
-| `137` | `"2021-01-19"` | `30` | `"NA - Video - Promo"` | `325` | `"Video"` | `"CPC"` |
-| `214` | `"2021-06-28"` | `30` | `"NA - Video - Promo"` | `78` | `"Video"` | `"CPC"` |
-| `170` | `"2021-03-15"` | `30` | `"EU - Search - Brand"` | `465` | `"Search"` | `"CPC"` |
-| `276` | `"2022-01-01"` | `30` | `"EU - Search - Brand"` | `83` | `"Search"` | `"CPC"` |
-| `25` | `"2020-02-18"` | `30` | `"EU - Search - Brand"` | `30` | `"Search"` | `"CPC"` |
-| `201` | `"2021-06-08"` | `30` | `"EU - Search - Brand"` | `172` | `"Search"` | `"CPC"` |
-| `115` | `"2020-11-29"` | `60` | `"EU - Search - Other"` | `83` | `"Search"` | `"CPC"` |
-| `237` | `"2021-09-11"` | `30` | `"EU - Search - Other"` | `86` | `"Search"` | `"CPC"` |
-| `296` | `"2022-02-17"` | `30` | `"EU - Search - Other"` | `64` | `"Search"` | `"CPC"` |
+So for this demo I wrote a small PySpark script, `etl_campaign.py`, that cleans and reshapes the data before it lands in BigQuery. We'll run it as a batch job on Dataproc Serverless.
 
 ---
 
-## 🛠️ 2. Pre-Demo Setup (Execute Before Demo)
+## The source data
 
-Run the following commands to prepare the network, Cloud Storage buckets, BigQuery dataset, and lab assets before walking through the PySpark ETL script.
+`campaigns.avro` is tiny, just 10 rows of ad campaign data:
 
-> [!NOTE]
-> Replace `qwiklabs-gcp-02-cb89e6ac26cc` and `us-central1` with your active Qwiklabs Project ID and Region if running in a new lab session.
+| id | created_at | period | campaign_name | amount | advertising_channel | bid_type |
+|---|---|---|---|---|---|---|
+| 81 | 2020-09-17 | 90 | NA - Video - Other | 41 | Video | CPC |
+| 137 | 2021-01-19 | 30 | NA - Video - Promo | 325 | Video | CPC |
+| 214 | 2021-06-28 | 30 | NA - Video - Promo | 78 | Video | CPC |
+| 170 | 2021-03-15 | 30 | EU - Search - Brand | 465 | Search | CPC |
+| 276 | 2022-01-01 | 30 | EU - Search - Brand | 83 | Search | CPC |
+| 25 | 2020-02-18 | 30 | EU - Search - Brand | 30 | Search | CPC |
+| 201 | 2021-06-08 | 30 | EU - Search - Brand | 172 | Search | CPC |
+| 115 | 2020-11-29 | 60 | EU - Search - Other | 83 | Search | CPC |
+| 237 | 2021-09-11 | 30 | EU - Search - Other | 86 | Search | CPC |
+| 296 | 2022-02-17 | 30 | EU - Search - Other | 64 | Search | CPC |
 
-### A. Cloud Shell Commands
+Some things to point out:
 
-Open **Cloud Shell** and run:
+- `created_at` is stored as a string, not a date.
+- `campaign_name` holds three values in one field: region, channel, and category.
+- `period` is the campaign length in days, so we can work out when each campaign ends and how much it spent per day.
+
+The script fixes all of these.
+
+---
+
+## Setup (run this before the demo)
+
+My project ID and region are below. If you're starting a new lab session, swap in your own.
+
+### In Cloud Shell
 
 ```bash
-# 1. Enable Private IP Google Access on the default subnet (required by Serverless Spark)
+# Serverless Spark needs Private Google Access on the subnet
 gcloud compute networks subnets update default --region=us-central1 --enable-private-ip-google-access
 
-# 2. Create the main staging bucket and BigQuery temporary bucket
+# One bucket for the data and staging files, one for BigQuery temp files
 gsutil mb -p qwiklabs-gcp-02-cb89e6ac26cc gs://qwiklabs-gcp-02-cb89e6ac26cc
 
 gsutil mb -p qwiklabs-gcp-02-cb89e6ac26cc gs://qwiklabs-gcp-02-cb89e6ac26cc-bqtemp
 
-# 3. Create the target BigQuery dataset
+# Dataset for the output tables
 bq mk -d loadavro
 ```
 
-### B. Remote VM (`lab-vm`) Commands
+### On the remote VM
 
-Open the SSH terminal to **`lab-vm`** (via **Compute Engine > VM instances > SSH**) and run:
+Go to Compute Engine > VM instances and SSH into `lab-vm`. Then run:
 
 ```bash
-# 1. Download the sample Avro dataset and upload it to Cloud Storage
+# Get the Avro file and copy it to the bucket
 wget https://storage.googleapis.com/cloud-training/dataengineering/lab_assets/idegc/campaigns.avro
 
 gcloud storage cp campaigns.avro gs://qwiklabs-gcp-02-cb89e6ac26cc
 
-# 2. Download and extract Dataproc Templates
+# Get the Dataproc templates (we'll work inside this folder)
 wget https://storage.googleapis.com/cloud-training/dataengineering/lab_assets/idegc/dataproc-templates.zip
 
 unzip dataproc-templates.zip
@@ -71,22 +74,27 @@ cd dataproc-templates/python
 
 ---
 
-## 💻 3. Create and Explain `etl_campaign.py`
+## Walking through etl_campaign.py
 
-While inside `~/dataproc-templates/python` on the **Remote VM (`lab-vm`)**, create the `etl_campaign.py` file.
+The script has four steps.
 
-### What this ETL Script Does:
-1. **Extract:** Reads the raw `campaigns.avro` file from Google Cloud Storage (`gs://<PROJECT_ID>/campaigns.avro`).
-2. **Transform (Silver Layer - `loadavro.campaigns`):**
-   * **String Splitting:** Splits `campaign_name` (e.g., `"NA - Video - Promo"`) using the `-` delimiter into two clean analytical columns: `market_region` (`NA`, `EU`) and `campaign_category` (`Other`, `Promo`, `Brand`).
-   * **Date Casting & Arithmetic:** Casts `created_at` (`STRING`) into `start_date` (`DATE`) and calculates `end_date` by adding `period` (in days) to `start_date`.
-   * **Feature Engineering:** Computes `daily_spend = round(amount / period, 2)` and categorizes campaigns into a `budget_tier` (`High` for $\ge 200$, `Medium` for $\ge 80$, and `Low` for $< 80$).
-   * **Audit Column:** Adds `etl_processed_at` (`TIMESTAMP`) to record when the Spark job processed the row.
-3. **Transform (Gold Layer - `loadavro.campaigns_summary`):**
-   * Aggregates the enriched data by `market_region`, `advertising_channel`, and `campaign_category` to compute `total_campaigns`, `total_spend`, and `avg_daily_spend`.
-4. **Load:** Writes both DataFrames directly to BigQuery using the built-in Spark BigQuery connector.
+**1. Read.** Load the Avro file from GCS into a DataFrame. We print the schema and the rows first so we can see what Spark picked up.
 
-### Create `etl_campaign.py` on `lab-vm`:
+**2. Clean up each row.** This part does the most work:
+
+- Split `campaign_name` on `-` to get `market_region` (NA / EU) and `campaign_category` (Brand / Promo / Other). We don't need a separate channel column because `advertising_channel` already exists.
+- Convert `created_at` to a real `DATE` called `start_date`, then add `period` days to get `end_date`.
+- Calculate `daily_spend` as `amount / period`.
+- Put each campaign in a `budget_tier`: 200 and above is High, 80 to 199 is Medium, below 80 is Low.
+- Add `etl_processed_at` so we know when the row was processed. This is a good habit in any pipeline.
+
+**3. Summarize.** Group by region, channel, and category, then calculate the campaign count, total spend, and average daily spend. This is the kind of table a dashboard would read from.
+
+**4. Write to BigQuery.** The detailed rows go to `loadavro.campaigns` and the summary goes to `loadavro.campaigns_summary`. One job, two tables.
+
+I kept the table name `campaigns` on purpose, because that's the table the original lab creates. That way the lab's progress check should still find it.
+
+To create the file on the VM, paste this whole block:
 
 ```bash
 cat << 'EOF' > etl_campaign.py
@@ -103,33 +111,28 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 
-def main(project_id: str, gcs_input_path: str, bq_dataset: str, temp_bucket: str):
-    # Initialize Spark Session
+def main(project_id, gcs_input_path, bq_dataset, temp_bucket):
     spark = SparkSession.builder \
         .appName("ETL-Avro-Campaigns-to-BigQuery") \
         .getOrCreate()
 
-    # ==========================================
-    # 1. EXTRACT: Read Avro file from GCS
-    # ==========================================
-    logging.info(f"Reading raw Avro data from: {gcs_input_path}")
+    # 1. Extract - read the Avro file from GCS
+    logging.info(f"Reading Avro data from {gcs_input_path}")
     raw_df = spark.read.format("avro").load(gcs_input_path)
     raw_df.printSchema()
     raw_df.show(truncate=False)
 
-    # ==========================================
-    # 2. TRANSFORM (Silver Layer): Cleansing & Feature Engineering
-    # ==========================================
-    logging.info("Transforming campaign records...")
+    # 2. Transform - clean up and add new columns
+    logging.info("Transforming campaign rows")
     transformed_df = (
         raw_df
-        # Split 'NA - Video - Promo' into market_region ('NA') and campaign_category ('Promo')
+        # "NA - Video - Promo" -> region "NA", category "Promo"
         .withColumn("market_region", trim(split(col("campaign_name"), "-").getItem(0)))
         .withColumn("campaign_category", trim(split(col("campaign_name"), "-").getItem(2)))
-        # Convert created_at string to Date and calculate campaign end_date
+        # string -> date, then work out the end date
         .withColumn("start_date", to_date(col("created_at"), "yyyy-MM-dd"))
         .withColumn("end_date", expr("date_add(start_date, CAST(period AS INT))"))
-        # Calculate daily spend and classify budget tier
+        # spend per day and a simple budget bucket
         .withColumn("daily_spend", spark_round(col("amount") / col("period"), 2))
         .withColumn(
             "budget_tier",
@@ -137,17 +140,12 @@ def main(project_id: str, gcs_input_path: str, bq_dataset: str, temp_bucket: str
             .when(col("amount") >= 80, "Medium")
             .otherwise("Low")
         )
-        # Add ETL audit timestamp
         .withColumn("etl_processed_at", current_timestamp())
     )
-
-    logging.info("Preview of Enriched Campaign Data (Silver):")
     transformed_df.show(truncate=False)
 
-    # ==========================================
-    # 3. TRANSFORM (Gold Layer): Aggregation Summary
-    # ==========================================
-    logging.info("Aggregating campaign metrics by region and channel...")
+    # 3. Transform - summary per region / channel / category
+    logging.info("Building summary table")
     summary_df = (
         transformed_df
         .groupBy("market_region", "advertising_channel", "campaign_category")
@@ -158,61 +156,49 @@ def main(project_id: str, gcs_input_path: str, bq_dataset: str, temp_bucket: str
         )
         .withColumn("etl_processed_at", current_timestamp())
     )
-
-    logging.info("Preview of Aggregated Campaign Summary (Gold):")
     summary_df.show(truncate=False)
 
-    # ==========================================
-    # 4. LOAD: Write DataFrames to BigQuery
-    # ==========================================
-    silver_table = f"{project_id}.{bq_dataset}.campaigns"
-    gold_table = f"{project_id}.{bq_dataset}.campaigns_summary"
+    # 4. Load - write both tables to BigQuery
+    detail_table = f"{project_id}.{bq_dataset}.campaigns"
+    summary_table = f"{project_id}.{bq_dataset}.campaigns_summary"
 
-    logging.info(f"Writing Silver table to BigQuery: {silver_table}")
+    logging.info(f"Writing {detail_table}")
     transformed_df.write.format("bigquery") \
-        .option("table", silver_table) \
+        .option("table", detail_table) \
         .option("temporaryGcsBucket", temp_bucket) \
         .mode("overwrite") \
         .save()
 
-    logging.info(f"Writing Gold table to BigQuery: {gold_table}")
+    logging.info(f"Writing {summary_table}")
     summary_df.write.format("bigquery") \
-        .option("table", gold_table) \
+        .option("table", summary_table) \
         .option("temporaryGcsBucket", temp_bucket) \
         .mode("overwrite") \
         .save()
 
-    logging.info("Spark ETL job completed successfully!")
+    logging.info("Done")
     spark.stop()
 
 if __name__ == "__main__":
-    # Expected arguments: <PROJECT_ID> <GCS_INPUT_PATH> <BQ_DATASET> <TEMP_BUCKET>
     if len(sys.argv) < 5:
         print("Usage: etl_campaign.py <PROJECT_ID> <GCS_INPUT_PATH> <BQ_DATASET> <TEMP_BUCKET>")
         sys.exit(1)
 
-    main(
-        project_id=sys.argv[1],
-        gcs_input_path=sys.argv[2],
-        bq_dataset=sys.argv[3],
-        temp_bucket=sys.argv[4],
-    )
+    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
 EOF
 ```
 
 ---
 
-## ▶️ 4. Execute the PySpark ETL Job on Dataproc Serverless
+## Running it on Dataproc Serverless
 
-Still inside the **Remote VM (`lab-vm`)**, set the environment variables and submit `etl_campaign.py` to **Dataproc Serverless for Spark**:
+Still on the VM:
 
 ```bash
-# 1. Set environment variables
 export GCP_PROJECT=qwiklabs-gcp-02-cb89e6ac26cc
 export REGION=us-central1
 export JARS="gs://cloud-training/dataengineering/lab_assets/idegc/spark-bigquery_2.12-20221021-2134.jar,file:///usr/lib/spark/connector/spark-avro.jar"
 
-# 2. Submit the PySpark Serverless Batch Workload
 gcloud dataproc batches submit pyspark etl_campaign.py \
     --project=$GCP_PROJECT \
     --region=$REGION \
@@ -226,18 +212,17 @@ gcloud dataproc batches submit pyspark etl_campaign.py \
     $GCP_PROJECT-bqtemp
 ```
 
-> [!TIP]
-> **Monitoring Execution:**
-> * In the **Google Cloud Console**, navigate to **Dataproc > Serverless > Batches** to show participants the live provisioning, driver logs (`Preview of Enriched Campaign Data`), and auto-scaling metrics.
-> * Because `etl_campaign.py` writes the enriched records to `loadavro.campaigns`, the Qwiklabs **"Check my progress"** grader will also pass!
+The four values after `--` are passed to the script as arguments: project, input file, dataset, and temp bucket.
+
+The job takes a couple of minutes to start because Dataproc has to provision resources first. While you wait, open Dataproc > Serverless > Batches in the console and show participants the job. The output tab will show the `show()` results from each step, which helps connect the code to the data.
 
 ---
 
-## 🔍 5. Verify Results in BigQuery
+## Checking the results
 
-Once the batch job status turns **`SUCCEEDED`**, open **BigQuery Studio** in the Google Cloud Console (or run `bq query` in Cloud Shell) to inspect both tables generated by the Spark ETL pipeline:
+When the batch shows `SUCCEEDED`, go to BigQuery and run:
 
-### A. Query the Enriched Silver Table (`loadavro.campaigns`)
+Detail table:
 
 ```sql
 SELECT
@@ -253,13 +238,11 @@ SELECT
   daily_spend,
   budget_tier,
   etl_processed_at
-FROM
-  `loadavro.campaigns`
-ORDER BY
-  amount DESC;
+FROM `loadavro.campaigns`
+ORDER BY amount DESC;
 ```
 
-### B. Query the Aggregated Gold Table (`loadavro.campaigns_summary`)
+Summary table:
 
 ```sql
 SELECT
@@ -270,8 +253,8 @@ SELECT
   total_spend,
   avg_daily_spend,
   etl_processed_at
-FROM
-  `loadavro.campaigns_summary`
-ORDER BY
-  total_spend DESC;
+FROM `loadavro.campaigns_summary`
+ORDER BY total_spend DESC;
 ```
+
+Have participants compare these tables with the raw Avro data at the top. The dates are real dates now, the campaign name has been split into columns, and there's a summary table that wasn't in the source.
