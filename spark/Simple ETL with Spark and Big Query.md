@@ -192,19 +192,26 @@ EOF
 
 ## Running it on Dataproc Serverless
 
-Still on the VM:
+Still on the VM. First, copy the script to the bucket:
 
 ```bash
 export GCP_PROJECT=qwiklabs-gcp-02-cb89e6ac26cc
 export REGION=us-central1
-export JARS="gs://cloud-training/dataengineering/lab_assets/idegc/spark-bigquery_2.12-20221021-2134.jar,file:///usr/lib/spark/connector/spark-avro.jar"
 
-gcloud dataproc batches submit pyspark etl_campaign.py \
+gcloud storage cp etl_campaign.py gs://$GCP_PROJECT/scripts/etl_campaign.py
+```
+
+Why not just submit the local file? If you pass a local `.py` file, gcloud has to upload it with `--deps-bucket`, and that first reads the bucket's metadata (`storage.buckets.get`). The VM runs as the Compute Engine default service account, and in this lab it can read and write objects but can't read bucket metadata. You'll get a permission error if you try. Uploading the script yourself with `gcloud storage cp` only needs object access, which is the same thing we did with `campaigns.avro`.
+
+Then submit the batch, pointing at the script in GCS:
+
+```bash
+gcloud dataproc batches submit pyspark gs://$GCP_PROJECT/scripts/etl_campaign.py \
     --project=$GCP_PROJECT \
     --region=$REGION \
-    --deps-bucket=gs://$GCP_PROJECT \
+    --version=1.1 \
     --subnet=default \
-    --jars=$JARS \
+    --jars=file:///usr/lib/spark/external/spark-avro.jar,gs://cloud-training/dataengineering/lab_assets/idegc/spark-bigquery_2.12-20221021-2134.jar \
     -- \
     $GCP_PROJECT \
     gs://$GCP_PROJECT/campaigns.avro \
@@ -212,7 +219,11 @@ gcloud dataproc batches submit pyspark etl_campaign.py \
     $GCP_PROJECT-bqtemp
 ```
 
-The four values after `--` are passed to the script as arguments: project, input file, dataset, and temp bucket.
+Notes on the flags:
+
+- No `--deps-bucket`. The script and the JARs are already in GCS (or on the runtime image), so gcloud has nothing to upload.
+- `--version=1.1` and the `spark-avro.jar` path are the same ones the lab's own `bin/start.sh` uses. The BigQuery connector JAR is also the one the lab provides. I kept them identical so we know they work in this environment.
+- The four values after `--` are passed to the script as arguments: project, input file, dataset, and temp bucket.
 
 The job takes a couple of minutes to start because Dataproc has to provision resources first. While you wait, open Dataproc > Serverless > Batches in the console and show participants the job. The output tab will show the `show()` results from each step, which helps connect the code to the data.
 
