@@ -39,30 +39,48 @@ Swap in your own project ID and region if you are running a fresh lab session.
 
 ### In Cloud Shell
 
+First, set your active Project ID and Region so you don't accidentally use an expired lab project ID:
+
 ```bash
+export PROJECT_ID=$(gcloud config get-value project)
+export REGION=us-central1
+
 # Serverless Spark requires Private Google Access on the subnet
-gcloud compute networks subnets update default --region=us-central1 --enable-private-ip-google-access
+gcloud compute networks subnets update default --region=$REGION --enable-private-ip-google-access
 
 # One bucket for staging, one for BigQuery temp files
-gsutil mb -p qwiklabs-gcp-02-cb89e6ac26cc gs://qwiklabs-gcp-02-cb89e6ac26cc
+gsutil mb -p $PROJECT_ID gs://$PROJECT_ID
 
-gsutil mb -p qwiklabs-gcp-02-cb89e6ac26cc gs://qwiklabs-gcp-02-cb89e6ac26cc-bqtemp
+gsutil mb -p $PROJECT_ID gs://$PROJECT_ID-bqtemp
 
 # Dataset for the output tables
 bq mk -d loadavro
 ```
 
-### On the remote VM
+### On the remote VM (`lab-vm`)
 
 Go to **Compute Engine > VM instances** and SSH into `lab-vm`.
 
-In this lab environment, the VM service account has restricted permissions on Cloud Storage buckets. Because of that, we don't upload local files from the VM to GCS. Instead, we download the files locally if we want to inspect them on the VM, and when we submit the Spark job, we point Dataproc directly to the public Cloud Storage buckets (`gs://furqon/etl_campaign.py` and `gs://cloud-training/.../campaigns.avro`).
-
-If you want to download the files on the VM to inspect them during the demo:
+Download the sample Avro file, copy it to your staging bucket, and extract the Dataproc templates just like the lab instructs:
 
 ```bash
-# Download the Avro file and the PySpark ETL script locally to review
+export GCP_PROJECT=$(gcloud config get-value project)
+export REGION=us-central1
+
 wget https://storage.googleapis.com/cloud-training/dataengineering/lab_assets/idegc/campaigns.avro
+
+gcloud storage cp campaigns.avro gs://$GCP_PROJECT
+
+wget https://storage.googleapis.com/cloud-training/dataengineering/lab_assets/idegc/dataproc-templates.zip
+
+unzip dataproc-templates.zip
+
+cd dataproc-templates/python
+```
+
+Also download `etl_campaign.py` onto the VM so we can open and explain the code before submitting it:
+
+```bash
 wget https://storage.googleapis.com/furqon/etl_campaign.py
 ```
 
@@ -177,29 +195,51 @@ What happens in the four steps:
 
 ## Running the job on Dataproc Serverless
 
-From the VM (or Cloud Shell), run:
+From the VM (`lab-vm`) or Cloud Shell, run:
 
 ```bash
-export GCP_PROJECT=qwiklabs-gcp-02-cb89e6ac26cc
+export GCP_PROJECT=$(gcloud config get-value project)
 export REGION=us-central1
+export GCS_STAGING_LOCATION=gs://$GCP_PROJECT
+export JARS="file:///usr/lib/spark/external/spark-avro.jar,gs://cloud-training/dataengineering/lab_assets/idegc/spark-bigquery_2.12-20221021-2134.jar"
 
-gcloud dataproc batches submit pyspark gs://furqon/etl_campaign.py \
+gcloud beta dataproc batches submit pyspark etl_campaign.py \
+    --version=1.1 \
     --project=$GCP_PROJECT \
     --region=$REGION \
-    --version=1.1 \
+    --deps-bucket=$GCS_STAGING_LOCATION \
     --subnet=default \
-    --jars=file:///usr/lib/spark/external/spark-avro.jar,gs://cloud-training/dataengineering/lab_assets/idegc/spark-bigquery_2.12-20221021-2134.jar \
+    --jars=$JARS \
     -- \
     $GCP_PROJECT \
-    gs://cloud-training/dataengineering/lab_assets/idegc/campaigns.avro \
+    gs://$GCP_PROJECT/campaigns.avro \
     loadavro \
     $GCP_PROJECT-bqtemp
 ```
 
-A few notes on this command:
+If you prefer not to stage the local `etl_campaign.py` via `--deps-bucket`, you can also submit the script directly from the public bucket `gs://furqon/etl_campaign.py`:
 
-- Both the PySpark script (`gs://furqon/etl_campaign.py`) and the input data (`gs://cloud-training/.../campaigns.avro`) are read directly from public buckets, so we don't need `--deps-bucket` or any upload permissions from the VM.
-- `--version=1.1` and the two JAR paths (`spark-avro.jar` and `spark-bigquery`) match the runtime setup expected by this lab environment.
+```bash
+export GCP_PROJECT=$(gcloud config get-value project)
+export REGION=us-central1
+
+gcloud beta dataproc batches submit pyspark gs://furqon/etl_campaign.py \
+    --version=1.1 \
+    --project=$GCP_PROJECT \
+    --region=$REGION \
+    --subnet=default \
+    --jars=file:///usr/lib/spark/external/spark-avro.jar,gs://cloud-training/dataengineering/lab_assets/idegc/spark-bigquery_2.12-20221021-2134.jar \
+    -- \
+    $GCP_PROJECT \
+    gs://$GCP_PROJECT/campaigns.avro \
+    loadavro \
+    $GCP_PROJECT-bqtemp
+```
+
+Why both of those earlier errors happened (good troubleshooting tip if it comes up):
+
+- Always use `export GCP_PROJECT=$(gcloud config get-value project)` instead of hardcoding a project ID from a previous lab run (`qwiklabs-gcp-02-cb89e6ac26cc`). Every time you start a new Qwiklabs session, the old project is deleted—submitting a job against an old project ID triggers either `storage.buckets.get denied (or it may not exist)` or `PERMISSION_DENIED / CONSUMER_INVALID` because that project no longer belongs to your current student account.
+- `--version=1.1` and the two JAR paths (`file:///usr/lib/spark/external/spark-avro.jar` and `spark-bigquery`) match the exact runtime configuration inside the lab's `bin/start.sh`.
 - The four arguments after `--` are passed into `sys.argv` in `etl_campaign.py`: project ID, input Avro path, target BigQuery dataset, and the BigQuery temp bucket.
 
 The batch takes a couple of minutes to finish provisioning. You can track it in the console under **Dataproc > Serverless > Batches** and check the output logs to see the `show()` tables printed by Spark.
