@@ -29,16 +29,13 @@ gcloud services enable artifactregistry.googleapis.com
 gcloud services enable container.googleapis.com
 gcloud services enable composer.googleapis.com
 gcloud services enable dataproc.googleapis.com
-
-# 3. Create Cloud Storage bucket named after the project ID
-gcloud storage buckets create gs://$PROJECT_ID --project=$PROJECT_ID
 ```
 
 ---
 
 ## Create and Upload `hadoop_tutorial.py` (Cloud Shell)
 
-Run this block in Cloud Shell to create `hadoop_tutorial.py` locally and upload it directly to your bucket `gs://$PROJECT_ID`:
+Run this block in Cloud Shell to create `hadoop_tutorial.py` locally and upload it directly to your Composer DAGs folder:
 
 ```bash
 cat << 'EOF' > hadoop_tutorial.py
@@ -136,8 +133,8 @@ with DAG(
 # [END composer_hadoop_tutorial]
 EOF
 
-# Upload hadoop_tutorial.py to Cloud Storage
-gcloud storage cp hadoop_tutorial.py gs://$PROJECT_ID/
+# Upload hadoop_tutorial.py to Composer DAGs folder in Cloud Storage
+gcloud storage cp hadoop_tutorial.py gs://<YOUR_DAGS_BUCKET_PATH>/
 ```
 
 > [!TIP]
