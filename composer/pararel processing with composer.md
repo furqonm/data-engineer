@@ -6,6 +6,28 @@ Instead of running a single `wordcount` task sequentially, the DAG spins up the 
 
 ---
 
+## Lab Setup (Run Before Demo)
+
+Run these commands in Cloud Shell to grant the necessary Composer Worker role to the default Compute Engine service account and reset the required APIs:
+
+```bash
+export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+  --role=roles/composer.worker
+
+gcloud services disable composer.googleapis.com
+gcloud services disable artifactregistry.googleapis.com
+gcloud services disable container.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+gcloud services enable container.googleapis.com
+gcloud services enable composer.googleapis.com
+```
+
+---
+
 ## What Runs in Parallel
 
 `hadoop-mapreduce-examples.jar` on every Dataproc cluster bundles multiple MapReduce utilities. We run three of them side by side against `gs://pub/shakespeare/rose.txt`:

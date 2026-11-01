@@ -4,6 +4,28 @@ This guide covers the baseline Cloud Composer (Apache Airflow) DAG (`hadoop_tuto
 
 ---
 
+## Lab Setup (Run Before Demo)
+
+Run these commands in Cloud Shell to grant the necessary Composer Worker role to the default Compute Engine service account and reset the required APIs:
+
+```bash
+export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+  --role=roles/composer.worker
+
+gcloud services disable composer.googleapis.com
+gcloud services disable artifactregistry.googleapis.com
+gcloud services disable container.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+gcloud services enable container.googleapis.com
+gcloud services enable composer.googleapis.com
+```
+
+---
+
 ## Airflow Variables Required
 
 Before uploading the DAG, make sure these four Airflow Variables are configured in **Admin > Variables** in the Airflow web UI:
