@@ -6,16 +6,20 @@ This guide covers the baseline Cloud Composer (Apache Airflow) DAG (`hadoop_tuto
 
 ## Lab Setup (Run in Cloud Shell)
 
-Run these commands in Cloud Shell to grant the necessary Composer Worker role, reset the required APIs, and create the Cloud Storage bucket named after your project ID:
+Run these commands in Cloud Shell to grant the necessary Composer and Dataproc permissions to the default Compute Engine service account, reset the required APIs, and create the Cloud Storage bucket named after your project ID:
 
 ```bash
 export PROJECT_ID=$(gcloud config get-value project)
 export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
 
-# 1. Grant Composer worker role to the default Compute service account
+# 1. Grant Composer worker and Dataproc editor roles to the default Compute service account
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com \
   --role=roles/composer.worker
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+  --role=roles/dataproc.editor
 
 # 2. Reset required service APIs
 gcloud services disable composer.googleapis.com
@@ -24,6 +28,7 @@ gcloud services disable container.googleapis.com
 gcloud services enable artifactregistry.googleapis.com
 gcloud services enable container.googleapis.com
 gcloud services enable composer.googleapis.com
+gcloud services enable dataproc.googleapis.com
 
 # 3. Create Cloud Storage bucket named after the project ID
 gcloud storage buckets create gs://$PROJECT_ID --project=$PROJECT_ID
@@ -56,10 +61,9 @@ from airflow.providers.google.cloud.operators.dataproc import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 
-# Output file for Cloud Dataproc job.
+# Output file for Cloud Dataproc job (using Jinja {{ ts_nodash }} so it stays static across DAG parses).
 output_file = os.path.join(
-    Variable.get('gcs_bucket'), 'wordcount',
-    datetime.datetime.now().strftime('%Y%m%d-%H%M%S')) + os.sep
+    Variable.get('gcs_bucket'), 'wordcount', '{{ ts_nodash }}') + os.sep
 # Path to Hadoop wordcount example available on every Dataproc cluster.
 WORDCOUNT_JAR = (
     'file:///usr/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar'
@@ -104,7 +108,7 @@ with DAG(
     run_dataproc_hadoop = DataprocSubmitJobOperator(
         task_id='run_dataproc_hadoop',
         project_id=Variable.get('gcp_project'),
-        region=Variable.get('gce_region'),  # <-- CORRECTED: Changed 'location' back to 'region'
+        region=Variable.get('gce_region'),
         job={
             'placement': {
                 'cluster_name': 'composer-hadoop-tutorial-cluster-{{ ds_nodash }}'
@@ -180,10 +184,9 @@ from airflow.providers.google.cloud.operators.dataproc import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 
-# Output file for Cloud Dataproc job.
+# Output file for Cloud Dataproc job (using Jinja {{ ts_nodash }} so it stays static across DAG parses).
 output_file = os.path.join(
-    Variable.get('gcs_bucket'), 'wordcount',
-    datetime.datetime.now().strftime('%Y%m%d-%H%M%S')) + os.sep
+    Variable.get('gcs_bucket'), 'wordcount', '{{ ts_nodash }}') + os.sep
 # Path to Hadoop wordcount example available on every Dataproc cluster.
 WORDCOUNT_JAR = (
     'file:///usr/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar'
@@ -228,7 +231,7 @@ with DAG(
     run_dataproc_hadoop = DataprocSubmitJobOperator(
         task_id='run_dataproc_hadoop',
         project_id=Variable.get('gcp_project'),
-        region=Variable.get('gce_region'),  # <-- CORRECTED: Changed 'location' back to 'region'
+        region=Variable.get('gce_region'),
         job={
             'placement': {
                 'cluster_name': 'composer-hadoop-tutorial-cluster-{{ ds_nodash }}'

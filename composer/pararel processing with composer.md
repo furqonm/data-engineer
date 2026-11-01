@@ -8,16 +8,20 @@ Instead of running a single `wordcount` task sequentially, the DAG spins up the 
 
 ## Lab Setup (Run in Cloud Shell)
 
-Run these commands in Cloud Shell to grant the necessary Composer Worker role, reset the required APIs, and create the Cloud Storage bucket named after your project ID:
+Run these commands in Cloud Shell to grant the necessary Composer and Dataproc permissions to the default Compute Engine service account, reset the required APIs, and create the Cloud Storage bucket named after your project ID:
 
 ```bash
 export PROJECT_ID=$(gcloud config get-value project)
 export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
 
-# 1. Grant Composer worker role to the default Compute service account
+# 1. Grant Composer worker and Dataproc editor roles to the default Compute service account
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com \
   --role=roles/composer.worker
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+  --role=roles/dataproc.editor
 
 # 2. Reset required service APIs
 gcloud services disable composer.googleapis.com
@@ -26,6 +30,7 @@ gcloud services disable container.googleapis.com
 gcloud services enable artifactregistry.googleapis.com
 gcloud services enable container.googleapis.com
 gcloud services enable composer.googleapis.com
+gcloud services enable dataproc.googleapis.com
 
 # 3. Create Cloud Storage bucket named after the project ID
 gcloud storage buckets create gs://$PROJECT_ID --project=$PROJECT_ID
@@ -59,14 +64,11 @@ from airflow.providers.google.cloud.operators.dataproc import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 
-# Base output timestamp for this DAG run.
-run_timestamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+# Base output path using Jinja {{ ts_nodash }} so DAG definition remains static across parses.
 gcs_bucket = Variable.get('gcs_bucket')
-
-# Separate output directories in GCS for each parallel Hadoop job.
-wordcount_output = os.path.join(gcs_bucket, 'wordcount', run_timestamp) + os.sep
-wordmean_output = os.path.join(gcs_bucket, 'wordmean', run_timestamp) + os.sep
-grep_output = os.path.join(gcs_bucket, 'grep_rose', run_timestamp) + os.sep
+wordcount_output = os.path.join(gcs_bucket, 'wordcount', '{{ ts_nodash }}') + os.sep
+wordmean_output = os.path.join(gcs_bucket, 'wordmean', '{{ ts_nodash }}') + os.sep
+grep_output = os.path.join(gcs_bucket, 'grep_rose', '{{ ts_nodash }}') + os.sep
 
 # Path to Hadoop MapReduce examples JAR available on every Dataproc cluster.
 EXAMPLES_JAR = (
@@ -189,9 +191,9 @@ gcloud storage cp hadoop_tutorial.py gs://$PROJECT_ID/
 
 | Task ID | MapReduce Program | Arguments | Output Path in GCS (`gcs_bucket`) | What It Does |
 |---|---|---|---|---|
-| `run_wordcount` | `wordcount` | `['wordcount', input_file, wordcount_output]` | `<gcs_bucket>/wordcount/<timestamp>/` | Counts how many times each word appears in `rose.txt`. |
-| `run_wordmean` | `wordmean` | `['wordmean', input_file, wordmean_output]` | `<gcs_bucket>/wordmean/<timestamp>/` | Calculates the average character length of words in `rose.txt`. |
-| `run_grep_keyword` | `grep` | `['grep', input_file, grep_output, 'rose']` | `<gcs_bucket>/grep_rose/<timestamp>/` | Searches for and counts matches of the pattern `"rose"`. |
+| `run_wordcount` | `wordcount` | `['wordcount', input_file, wordcount_output]` | `<gcs_bucket>/wordcount/{{ ts_nodash }}/` | Counts how many times each word appears in `rose.txt`. |
+| `run_wordmean` | `wordmean` | `['wordmean', input_file, wordmean_output]` | `<gcs_bucket>/wordmean/{{ ts_nodash }}/` | Calculates the average character length of words in `rose.txt`. |
+| `run_grep_keyword` | `grep` | `['grep', input_file, grep_output, 'rose']` | `<gcs_bucket>/grep_rose/{{ ts_nodash }}/` | Searches for and counts matches of the pattern `"rose"`. |
 
 ---
 
@@ -218,14 +220,11 @@ from airflow.providers.google.cloud.operators.dataproc import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 
-# Base output timestamp for this DAG run.
-run_timestamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+# Base output path using Jinja {{ ts_nodash }} so DAG definition remains static across parses.
 gcs_bucket = Variable.get('gcs_bucket')
-
-# Separate output directories in GCS for each parallel Hadoop job.
-wordcount_output = os.path.join(gcs_bucket, 'wordcount', run_timestamp) + os.sep
-wordmean_output = os.path.join(gcs_bucket, 'wordmean', run_timestamp) + os.sep
-grep_output = os.path.join(gcs_bucket, 'grep_rose', run_timestamp) + os.sep
+wordcount_output = os.path.join(gcs_bucket, 'wordcount', '{{ ts_nodash }}') + os.sep
+wordmean_output = os.path.join(gcs_bucket, 'wordmean', '{{ ts_nodash }}') + os.sep
+grep_output = os.path.join(gcs_bucket, 'grep_rose', '{{ ts_nodash }}') + os.sep
 
 # Path to Hadoop MapReduce examples JAR available on every Dataproc cluster.
 EXAMPLES_JAR = (
