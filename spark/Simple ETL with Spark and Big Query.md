@@ -256,5 +256,3 @@ SELECT
 FROM `loadavro.campaigns_summary`
 ORDER BY total_spend DESC;
 ```
-
-Have participants compare these tables with the raw Avro data at the top. The dates are real dates now, the campaign name has been split into columns, and there's a summary table that wasn't in the source.
