@@ -4,25 +4,146 @@ This guide covers the baseline Cloud Composer (Apache Airflow) DAG (`hadoop_tuto
 
 ---
 
-## Lab Setup (Run Before Demo)
+## Lab Setup (Run in Cloud Shell)
 
-Run these commands in Cloud Shell to grant the necessary Composer Worker role to the default Compute Engine service account and reset the required APIs:
+Run these commands in Cloud Shell to grant the necessary Composer Worker role, reset the required APIs, and create the Cloud Storage bucket named after your project ID:
 
 ```bash
 export PROJECT_ID=$(gcloud config get-value project)
 export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
 
+# 1. Grant Composer worker role to the default Compute service account
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member=serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com \
   --role=roles/composer.worker
 
+# 2. Reset required service APIs
 gcloud services disable composer.googleapis.com
 gcloud services disable artifactregistry.googleapis.com
 gcloud services disable container.googleapis.com
 gcloud services enable artifactregistry.googleapis.com
 gcloud services enable container.googleapis.com
 gcloud services enable composer.googleapis.com
+
+# 3. Create Cloud Storage bucket named after the project ID
+gcloud storage buckets create gs://$PROJECT_ID --project=$PROJECT_ID
 ```
+
+---
+
+## Create and Upload `hadoop_tutorial.py` (Cloud Shell)
+
+Run this block in Cloud Shell to create `hadoop_tutorial.py` locally and upload it directly to your bucket `gs://$PROJECT_ID`:
+
+```bash
+cat << 'EOF' > hadoop_tutorial.py
+# [START composer_hadoop_tutorial]
+"""Example Airflow DAG that creates a Cloud Dataproc cluster, runs the Hadoop
+wordcount example, and deletes the cluster.
+"""
+
+from __future__ import annotations
+
+import datetime
+import os
+
+from airflow.models.dag import DAG
+from airflow.models.variable import Variable
+from airflow.providers.google.cloud.operators.dataproc import (
+    DataprocCreateClusterOperator,
+    DataprocDeleteClusterOperator,
+    DataprocSubmitJobOperator,
+)
+from airflow.utils.trigger_rule import TriggerRule
+
+# Output file for Cloud Dataproc job.
+output_file = os.path.join(
+    Variable.get('gcs_bucket'), 'wordcount',
+    datetime.datetime.now().strftime('%Y%m%d-%H%M%S')) + os.sep
+# Path to Hadoop wordcount example available on every Dataproc cluster.
+WORDCOUNT_JAR = (
+    'file:///usr/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar'
+)
+# Arguments to pass to Cloud Dataproc job.
+input_file = 'gs://pub/shakespeare/rose.txt'
+wordcount_args = ['wordcount', input_file, output_file]
+
+# Using a fixed start date is a best practice.
+start_date = datetime.datetime(2025, 1, 1)
+
+default_dag_args = {
+    'start_date': start_date,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': datetime.timedelta(minutes=5),
+    'project_id': Variable.get('gcp_project')
+}
+
+# [START composer_hadoop_schedule]
+with DAG(
+    'composer_hadoop_tutorial',
+    schedule_interval=datetime.timedelta(days=1),
+    default_args=default_dag_args,
+    catchup=False
+) as dag:
+    # [END composer_hadoop_schedule]
+
+    # Create a Cloud Dataproc cluster.
+    create_dataproc_cluster = DataprocCreateClusterOperator(
+        task_id='create_dataproc_cluster',
+        cluster_name='composer-hadoop-tutorial-cluster-{{ ds_nodash }}',
+        num_workers=2,
+        region=Variable.get('gce_region'),
+        zone=Variable.get('gce_zone'),
+        image_version='2.1',
+        master_machine_type='e2-standard-2',
+        worker_machine_type='e2-standard-2')
+
+    # Run the Hadoop wordcount example using the corrected operator.
+    run_dataproc_hadoop = DataprocSubmitJobOperator(
+        task_id='run_dataproc_hadoop',
+        project_id=Variable.get('gcp_project'),
+        region=Variable.get('gce_region'),  # <-- CORRECTED: Changed 'location' back to 'region'
+        job={
+            'placement': {
+                'cluster_name': 'composer-hadoop-tutorial-cluster-{{ ds_nodash }}'
+            },
+            'hadoop_job': {
+                'main_jar_file_uri': WORDCOUNT_JAR,
+                'args': wordcount_args,
+            },
+        },
+    )
+
+    # Delete Cloud Dataproc cluster.
+    delete_dataproc_cluster = DataprocDeleteClusterOperator(
+        task_id='delete_dataproc_cluster',
+        project_id=Variable.get('gcp_project'),
+        region=Variable.get('gce_region'),
+        cluster_name='composer-hadoop-tutorial-cluster-{{ ds_nodash }}',
+        trigger_rule=TriggerRule.ALL_DONE)
+
+    # [START composer_hadoop_steps]
+    # Define DAG dependencies.
+    create_dataproc_cluster >> run_dataproc_hadoop >> delete_dataproc_cluster
+    # [END composer_hadoop_steps]
+
+# [END composer_hadoop_tutorial]
+EOF
+
+# Upload hadoop_tutorial.py to Cloud Storage
+gcloud storage cp hadoop_tutorial.py gs://$PROJECT_ID/
+```
+
+> [!TIP]
+> If you are deploying this DAG into an existing Cloud Composer environment, you can copy the file directly to your Composer DAGs folder using:
+> ```bash
+> gcloud composer environments storage dags import \
+>   --environment=<YOUR_COMPOSER_ENV_NAME> \
+>   --location=<YOUR_REGION> \
+>   --source=hadoop_tutorial.py
+> ```
 
 ---
 
