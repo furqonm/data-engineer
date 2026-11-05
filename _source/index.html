@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cloud Architecture & Data Engineering Northstar Index</title>
+  <title>Cloud Architecture Use Cases</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -39,33 +39,23 @@
     * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; line-height: 1.6; }
     header { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(16px); background: var(--nav-bg); border-bottom: 1px solid var(--card-border); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
-    .logo-container { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.1rem; }
-    .logo-badge { background: linear-gradient(135deg, var(--primary), #ec4899); color: white; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; text-decoration: none; }
+    .logo-container { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em; }
     .header-actions { display: flex; align-items: center; gap: 12px; }
-    .theme-toggle, .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: none; }
-    .theme-toggle:hover, .nav-btn:hover:not(.disabled) { background: var(--btn-hover); transform: translateY(-1px); }
-    .nav-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+    .theme-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+    .theme-toggle:hover { background: var(--btn-hover); transform: translateY(-1px); }
     
-    main { max-width: 900px; width: 92%; margin: 40px auto 60px; flex: 1; }
-    .hero { text-align: center; margin-bottom: 48px; }
-    .hero h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.03em; }
-    .hero p { color: var(--text-muted); font-size: 1.05rem; max-width: 650px; margin: 0 auto; }
+    main { max-width: 800px; width: 92%; margin: 40px auto 60px; flex: 1; }
     
-    .list-container { display: flex; flex-direction: column; gap: 16px; }
-    .article-card { display: flex; justify-content: space-between; align-items: center; padding: 22px 26px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-decoration: none; color: var(--text); backdrop-filter: blur(12px); }
+    .list-container { display: flex; flex-direction: column; gap: 12px; }
+    .article-card { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; text-decoration: none; color: var(--text); backdrop-filter: blur(12px); font-size: 1.05rem; font-weight: 600; }
     .article-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 10px 25px -5px var(--primary-glow); }
-    .article-info h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
-    .article-info p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
     .card-arrow { font-size: 1.2rem; color: var(--accent); margin-left: 16px; }
-    
-    footer { border-top: 1px solid var(--card-border); padding: 24px; text-align: center; font-size: 0.85rem; color: var(--text-muted); background: var(--nav-bg); }
   </style>
 </head>
 <body>
   <header>
     <div class="logo-container">
-      <a href="index.html" class="logo-badge">SOP</a>
-      <span>Cloud Architecture Northstar</span>
+      Cloud Architecture Use Cases
     </div>
     <div class="header-actions">
       <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle theme">
@@ -76,26 +66,13 @@
   </header>
 
   <main>
-    <section class="hero">
-      <h1>Katalog Use Case Real Cloud Architecture</h1>
-      <p>Dokumentasi teknis berbasis implementasi nyata dari industri, arsitektur resmi cloud provider, dan open-source software (Bukan Fiktif / Non-Generatif AI).</p>
-    </section>
-
     <div class="list-container" id="articleList">
       <a href="fan-out-and-single-subscriber-pattern.html" class="article-card">
-        <div class="article-info">
-          <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 4px;">#1 &bull; Event-Driven Architecture</div>
-          <h3>Pola Arsitektur Fan-Out vs Single Subscriber di Cloud Computing</h3>
-          <p>Analisis mendalam pola messaging Pub/Sub: kapan menggunakan Single Subscriber (Queue Buffering) dan kapan beralih ke Fan-Out (Multi-Consumer Broadcasting) berbasis implementasi nyata di Spotify, Shopify, dan Amazon Architecture Center.</p>
-        </div>
-        <div class="card-arrow">&rarr;</div>
+        <span>1. Fan-Out vs Single Subscriber Architecture Patterns in Cloud Computing</span>
+        <span class="card-arrow">&rarr;</span>
       </a>
     </div>
   </main>
-
-  <footer>
-    <p>Architecture Northstar Knowledge Base &bull; Host: trainocate-global.s3-website-us-east-1.amazonaws.com</p>
-  </footer>
 
   <script>
     function getStoredTheme() {
