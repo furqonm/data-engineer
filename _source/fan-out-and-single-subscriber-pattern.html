@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1. Fan-Out vs Single Subscriber Architecture Patterns in Cloud Computing</title>
+  <title>1. Fan-Out vs Single Subscriber</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -120,15 +120,15 @@
       <span>Fan-Out vs Single Subscriber</span>
     </div>
 
-    <h1>1. Fan-Out vs Single Subscriber Architecture Patterns in Cloud Computing</h1>
-    <p>In modern Event-Driven Architecture (EDA), deciding how messages flow from producers to consumers dictates scalability, failure isolation, and operational agility. While topics naturally broadcast events, enterprise systems often deploy both Fan-Out and Single Subscriber patterns deliberately for distinct resilience guarantees.</p>
+    <h1>1. Fan-Out vs Single Subscriber</h1>
+    <p>In modern Event-Driven Architecture (EDA) on Google Cloud, deciding how messages flow from producers to consumers dictates scalability, failure isolation, and operational agility. While Google Cloud Pub/Sub topics naturally broadcast events, enterprise systems deploy both Fan-Out and Single Subscriber patterns deliberately for distinct resilience guarantees.</p>
 
     <div class="callout">
       <div class="callout-title">
         <span>📌</span> Pattern Summary
       </div>
-      <p><strong>Fan-Out Pattern:</strong> A one-to-many broadcast mechanism where a single event published to a topic is cloned and distributed concurrently to multiple isolated queues/subscriptions.</p>
-      <p style="margin-bottom: 0;"><strong>Single Subscriber Pattern:</strong> A point-to-point decoupling model where a topic or queue forwards messages to exactly one consuming subsystem, serving as a protective buffer, shock absorber, and decoupling layer.</p>
+      <p><strong>Fan-Out Pattern:</strong> A one-to-many broadcast mechanism where a single event published to a Google Cloud Pub/Sub topic is delivered concurrently to multiple independent subscriptions (Pull, Push, BigQuery, or Cloud Storage subscriptions).</p>
+      <p style="margin-bottom: 0;"><strong>Single Subscriber Pattern:</strong> A point-to-point decoupling model where a Google Cloud Pub/Sub topic attaches to exactly one dedicated subscription, serving as a protective buffer, shock absorber, and rate limiter for downstream services.</p>
     </div>
 
     <h2>1. The Fan-Out Pattern (One-to-Many Broadcasting)</h2>
@@ -167,7 +167,7 @@
         <!-- Topic (Hub) -->
         <rect x="270" y="125" width="200" height="130" rx="12" fill="url(#topicGrad)" stroke="var(--primary)" stroke-width="2" />
         <text x="370" y="162" text-anchor="middle" font-weight="800" font-size="15" fill="var(--text)">Pub/Sub Topic</text>
-        <text x="370" y="182" text-anchor="middle" font-size="11" fill="var(--text-muted)">GCP Pub/Sub • AWS SNS</text>
+        <text x="370" y="182" text-anchor="middle" font-size="11" fill="var(--text-muted)">Google Cloud Pub/Sub</text>
         <rect x="290" y="200" width="160" height="24" rx="12" fill="rgba(99, 102, 241, 0.2)" stroke="var(--callout-border)" />
         <text x="370" y="216" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--primary)">Fan-Out Broadcast Hub</text>
         <text x="370" y="242" text-anchor="middle" font-size="9.5" fill="var(--text-muted)">1-to-N Parallel Fan-Out</text>
@@ -218,7 +218,7 @@
     </ul>
 
     <h2>2. The Single Subscriber Pattern: Why Buffer for One Consumer?</h2>
-    <p>A common architectural anti-pattern is assuming that having only one downstream consumer means the producer should call that consumer directly over synchronous HTTP. In production cloud engineering, routing through a dedicated queue or topic for a single subscriber provides vital operational advantages.</p>
+    <p>A common architectural anti-pattern is assuming that having only one downstream consumer means the producer should call that consumer directly over synchronous HTTP. In production cloud engineering on Google Cloud, routing through a dedicated Pub/Sub subscription for a single subscriber provides vital operational advantages.</p>
 
     <div class="diagram-box">
       <svg viewBox="0 0 860 190" width="100%" height="190" xmlns="http://www.w3.org/2000/svg">
@@ -255,21 +255,21 @@
 
         <!-- Queue / Buffer -->
         <rect x="305" y="32" width="250" height="122" rx="12" fill="url(#queueGrad)" stroke="#f59e0b" stroke-width="2" />
-        <text x="430" y="67" text-anchor="middle" font-weight="800" font-size="14.5" fill="var(--text)">Queue / Topic Buffer</text>
-        <text x="430" y="88" text-anchor="middle" font-size="11" fill="var(--text-muted)">AWS SQS • GCP Pub/Sub</text>
+        <text x="430" y="67" text-anchor="middle" font-weight="800" font-size="14.5" fill="var(--text)">Pub/Sub Subscription</text>
+        <text x="430" y="88" text-anchor="middle" font-size="11" fill="var(--text-muted)">Google Cloud Pub/Sub</text>
         <rect x="330" y="100" width="200" height="24" rx="12" fill="rgba(245, 158, 11, 0.2)" stroke="rgba(245, 158, 11, 0.4)" />
         <text x="430" y="116" text-anchor="middle" font-size="10.5" font-weight="700" fill="#f59e0b">🛡️ Shock Absorber & Backlog</text>
-        <text x="430" y="142" text-anchor="middle" font-size="9.5" fill="var(--text-muted)">7-14 Days Message Durability</text>
+        <text x="430" y="142" text-anchor="middle" font-size="9.5" fill="var(--text-muted)">Up to 7 Days Retention Duration</text>
 
         <!-- Arrow Queue -> Worker -->
         <path d="M 555 92 L 625 92" stroke="#10b981" stroke-width="2" marker-end="url(#arrow3)" />
-        <text x="590" y="82" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text-muted)">Pull Batches</text>
+        <text x="590" y="82" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text-muted)">Pull / Push</text>
 
         <!-- Single Worker -->
         <rect x="635" y="45" width="200" height="95" rx="10" fill="url(#workerGrad)" stroke="#10b981" stroke-width="1.5" />
         <text x="735" y="80" text-anchor="middle" font-weight="700" font-size="14" fill="var(--text)">Single Consumer</text>
-        <text x="735" y="103" text-anchor="middle" font-size="11" fill="var(--text-muted)">Protected Database Writer</text>
-        <text x="735" y="122" text-anchor="middle" font-size="10" font-weight="600" fill="#10b981">Controlled 100 req/s Rate</text>
+        <text x="735" y="103" text-anchor="middle" font-size="11" fill="var(--text-muted)">Cloud Run / GKE Worker</text>
+        <text x="735" y="122" text-anchor="middle" font-size="10" font-weight="600" fill="#10b981">Protects Cloud SQL / Spanner</text>
       </svg>
     </div>
 
@@ -277,15 +277,15 @@
     <ol>
       <li>
         <strong>Shock Absorber / Rate Limiting (Traffic Leveling):</strong><br>
-        During flash sales or batch jobs, an API might generate 10,000 events/second. If sent directly to a worker's database, the database crashes. Placing an SQS queue or Pub/Sub subscription in between buffers the surge, allowing the single worker to pull records at its maximum safe processing rate (e.g., 100/sec) with zero data loss.
+        During flash sales or traffic spikes, an API or webhook might emit 10,000 events/second. If sent directly to a worker's transactional database (such as Cloud SQL or Cloud Spanner), connection pools exhaust and cause database crashes. Placing a dedicated Google Cloud Pub/Sub subscription in between buffers the surge, allowing a subscriber (running on Cloud Run, GKE, or Compute Engine) to pull records at its maximum safe processing rate (e.g., 100/sec) with zero data loss.
       </li>
       <li>
         <strong>Fault Isolation & Zero Downtime Deployments:</strong><br>
-        If the downstream worker service crashes or undergoes rolling upgrades, messages remain durable in Pub/Sub or SQS (retained up to 7–14 days). Once the consumer service returns online, processing resumes immediately without producing HTTP 500 errors on the producer.
+        If the downstream worker service crashes or undergoes rolling canary upgrades, messages remain durable and safely unacknowledged in Google Cloud Pub/Sub (retained up to 7 days by default, or 31 days with extended retention). Once the consumer service returns online, processing resumes immediately without returning HTTP 500 errors to the publisher.
       </li>
       <li>
         <strong>Day-2 Extensibility (Future-Proofing):</strong><br>
-        By establishing a Topic $\rightarrow$ Single Subscriber pattern from Day 1 (such as AWS SNS $\rightarrow$ 1 SQS), attaching a second subscriber later (e.g., a new Compliance Audit or Fraud Detection service) requires only a subscription configuration change. <strong>Zero code changes or redeployments are required in the producer service.</strong>
+        By establishing a Topic &rarr; Single Subscription pattern from Day 1, attaching a second subscriber later (such as a direct BigQuery subscription for analytical streaming or a Cloud Dataflow job for fraud detection) requires only adding a subscription in Google Cloud Console or Terraform. <strong>Zero code changes or redeployments are required in the upstream publisher service.</strong>
       </li>
     </ol>
 
@@ -294,35 +294,35 @@
       <thead>
         <tr>
           <th>Evaluation Metric</th>
-          <th>Fan-Out Architecture</th>
-          <th>Single Subscriber Queue</th>
+          <th>Fan-Out Architecture (Google Cloud)</th>
+          <th>Single Subscriber Pattern (Google Cloud)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td><strong>Delivery Ratio</strong></td>
-          <td>1-to-N (Broadcast / One-to-Many)</td>
-          <td>1-to-1 (Point-to-Point / Single Consumer)</td>
+          <td>1-to-N (1 Topic to N Subscriptions)</td>
+          <td>1-to-1 (1 Topic to 1 Dedicated Subscription)</td>
         </tr>
         <tr>
-          <td><strong>Common Cloud Services</strong></td>
-          <td>GCP Cloud Pub/Sub, AWS SNS + Multiple SQS</td>
-          <td>AWS SQS direct, GCP Pub/Sub with 1 Subscription, RabbitMQ</td>
+          <td><strong>Google Cloud Services</strong></td>
+          <td>Google Cloud Pub/Sub (1 Topic &rarr; Pull, Push, BigQuery, and Cloud Storage Subscriptions)</td>
+          <td>Google Cloud Pub/Sub (1 Topic &rarr; 1 Subscription &rarr; Cloud Run / GKE / Compute Engine)</td>
         </tr>
         <tr>
           <td><strong>Primary Objective</strong></td>
-          <td>Multi-domain decoupling, concurrent business actions</td>
-          <td>Load smoothing, rate limiting, downstream DB protection</td>
+          <td>Multi-service decoupling, concurrent business actions (e.g., Spotify ML + Royalties)</td>
+          <td>Traffic smoothing, rate leveling, and downstream database protection (Cloud SQL, Spanner)</td>
         </tr>
         <tr>
           <td><strong>Failure Impact</strong></td>
-          <td>Fully isolated; a failure in Subscriber A never stalls Subscriber B</td>
-          <td>Backlog accumulates in the queue until the worker recovers</td>
+          <td>Fully isolated; a slow or failing subscription never stalls other parallel subscriptions</td>
+          <td>Backlog accumulates safely within the Pub/Sub subscription until worker recovers</td>
         </tr>
         <tr>
           <td><strong>Cost & Overhead</strong></td>
-          <td>Slightly higher (data egress and message delivery multiplied per subscriber)</td>
-          <td>Minimal and most cost-effective for dedicated single-purpose workloads</td>
+          <td>Message delivery fee applies per subscription (cost scales linearly with active subscriptions)</td>
+          <td>Minimal volume cost; highly cost-effective buffer with no provisioned idle server charges</td>
         </tr>
       </tbody>
     </table>
@@ -335,16 +335,16 @@
           <a href="https://cloud.google.com/pubsub/docs/overview" target="_blank" rel="noopener">Cloud Pub/Sub Overview & Architectural Patterns (Fan-out Subscriptions)</a>
         </li>
         <li>
+          <strong>Google Cloud Pub/Sub Documentation:</strong> 
+          <a href="https://cloud.google.com/pubsub/docs/subscriber" target="_blank" rel="noopener">Subscriber Overview: Pull, Push, BigQuery Subscriptions and Flow Control</a>
+        </li>
+        <li>
           <strong>Spotify Engineering:</strong> 
           <a href="https://engineering.atspotify.com/" target="_blank" rel="noopener">Spotify Tech Talks: Event-driven architecture scaling with Apache Beam and Cloud Pub/Sub</a>
         </li>
         <li>
           <strong>Shopify Engineering Blog:</strong> 
           <a href="https://shopify.engineering/" target="_blank" rel="noopener">High-throughput Webhook processing pipelines using Google Cloud Pub/Sub</a>
-        </li>
-        <li>
-          <strong>AWS Architecture Center:</strong> 
-          <a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/modern-application-development/fan-out.html" target="_blank" rel="noopener">Fanout SQS-SNS Messaging Architecture & Compaction Patterns</a>
         </li>
       </ul>
     </div>
