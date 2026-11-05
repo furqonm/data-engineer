@@ -25,6 +25,12 @@ This document is the official benchmark and operating procedure (**Northstar Arc
      > ⚠️ **Data Integrity Note:** *"The following case study is AI-generated as no public industry reference was found for this specific scenario."*
 4. **Citations & References:**
    * Include a dedicated section with the header **References** at the end of each document with links (do not use verbose labels like "References & Official Sources (Non-AI Generated)").
+5. **Target Product/Service Focus & Cross-Cloud Transparency:**
+   * When a specific cloud service/product is requested (e.g., Google Cloud Dataproc, AWS EMR, Azure Synapse), the documentation must focus strictly on that cloud provider's ecosystem and architecture.
+   * If a real-world case study or community experience is not found under the requested cloud provider, but an authentic production implementation exists on an alternative cloud platform (e.g., Alibaba Cloud, Huawei Cloud, Tencent Cloud, etc.):
+     * You may use that authentic engineering experience/architecture.
+     * **Mandatory Disclosure:** You MUST explicitly insert the phrase **`"other cloud provider"`** within the explanation without naming or advertising the competing cloud platform (e.g., *"In an equivalent large-scale production deployment on other cloud provider, this architecture..."*).
+     * This preserves factual integrity while keeping the primary focus on the requested service.
 
 ---
 
@@ -41,7 +47,11 @@ This document is the official benchmark and operating procedure (**Northstar Arc
    * **Breadcrumb Navigation:** The root link in the breadcrumb path must be labeled **Home** (linking to `index.html`), e.g., `Home / Category / Article Title`. Never use `Cloud Architecture Use Cases` as the breadcrumb root.
    * **No Domain Badges / Meta Tags:** Do not include metadata/domain badge banners under the title (e.g., omit labels like `Domain: Event-Driven Architecture ...`).
    * **Section Heading for Citations:** Use the clean title **References** for the sources/citations section.
-4. **Footer:**
+4. **Architectural Diagrams (Inline SVG Canvas Requirement):**
+   * Diagrams must **NEVER** be simple ASCII/text art or plain Unicode arrows (e.g., `[Box] ──► [Box]` is strictly forbidden).
+   * All architecture topologies, event flows, and interaction workflows must be rendered as clean, high-fidelity **inline SVG** (`<svg viewBox="..." ...>...</svg>`) canvases.
+   * Diagrams must be responsive (`viewBox`), visually styled with rounded containers, distinct service highlights, directional arrows, clear typography, and clean contrast in both light and dark themes.
+5. **Footer:**
    * **No Footer:** Footers must be completely omitted from all HTML pages (`index.html` and article pages).
 
 ---

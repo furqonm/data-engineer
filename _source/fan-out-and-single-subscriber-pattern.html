@@ -71,7 +71,8 @@
     .callout { background: var(--callout-bg); border-left: 4px solid var(--primary); padding: 18px 20px; border-radius: 0 12px 12px 0; margin: 24px 0; font-size: 0.95rem; }
     .callout-title { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
     
-    .diagram-box { background: var(--code-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 22px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; overflow-x: auto; margin: 24px 0; line-height: 1.5; color: var(--text); }
+    .diagram-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 24px; overflow-x: auto; margin: 24px 0; display: flex; justify-content: center; align-items: center; }
+    .diagram-box svg { max-width: 100%; height: auto; display: block; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
     
     table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 0.95rem; background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--card-border); }
     th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--card-border); }
@@ -134,17 +135,69 @@
     <p>When a core business event occurs (such as an order checkout or track playback), several independent microservices need access to the exact same payload without the producer knowing who they are or waiting for their responses.</p>
 
     <div class="diagram-box">
-[ Publisher / Producer ]
-          │
-          ▼  (1 Event: e.g., "OrderPlaced" / "TrackPlayed")
-  ┌───────────────┐
-  │ Pub/Sub Topic │  (GCP Cloud Pub/Sub Topic / AWS SNS Topic)
-  └───────┬───────┘
-          │
-          ├──► (Subscription A / SQS 1) ──► [ Inventory / Stock Service ]
-          ├──► (Subscription B / SQS 2) ──► [ Billing & Royalty Accounting ]
-          ├──► (Subscription C / SQS 3) ──► [ Real-time ML Recommendation Engine ]
-          └──► (Subscription D / SQS 4) ──► [ Notification Service (Email/SMS) ]
+      <svg viewBox="0 0 860 380" width="100%" height="380" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--primary)" />
+          </marker>
+          <linearGradient id="producerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.18" />
+            <stop offset="100%" stop-color="#6366f1" stop-opacity="0.08" />
+          </linearGradient>
+          <linearGradient id="topicGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="#6366f1" stop-opacity="0.12" />
+          </linearGradient>
+          <linearGradient id="consumerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10b981" stop-opacity="0.15" />
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.06" />
+          </linearGradient>
+        </defs>
+
+        <!-- Producer -->
+        <rect x="20" y="145" width="170" height="90" rx="10" fill="url(#producerGrad)" stroke="#38bdf8" stroke-width="1.5" />
+        <text x="105" y="180" text-anchor="middle" font-weight="700" font-size="14" fill="var(--text)">Publisher / Producer</text>
+        <text x="105" y="202" text-anchor="middle" font-size="11" fill="var(--text-muted)">e.g., API Gateway / App</text>
+        <text x="105" y="218" text-anchor="middle" font-size="10" font-weight="600" fill="#38bdf8">1 Event Emitted</text>
+
+        <!-- Flow Line Producer -> Topic -->
+        <path d="M 190 190 L 265 190" stroke="var(--primary)" stroke-width="2" marker-end="url(#arrow)" />
+        <text x="228" y="180" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text-muted)">OrderPlaced</text>
+
+        <!-- Topic (Hub) -->
+        <rect x="270" y="125" width="200" height="130" rx="12" fill="url(#topicGrad)" stroke="var(--primary)" stroke-width="2" />
+        <text x="370" y="162" text-anchor="middle" font-weight="800" font-size="15" fill="var(--text)">Pub/Sub Topic</text>
+        <text x="370" y="182" text-anchor="middle" font-size="11" fill="var(--text-muted)">GCP Pub/Sub • AWS SNS</text>
+        <rect x="290" y="200" width="160" height="24" rx="12" fill="rgba(99, 102, 241, 0.2)" stroke="var(--callout-border)" />
+        <text x="370" y="216" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--primary)">Fan-Out Broadcast Hub</text>
+        <text x="370" y="242" text-anchor="middle" font-size="9.5" fill="var(--text-muted)">1-to-N Parallel Fan-Out</text>
+
+        <!-- Fan-out Connection Paths -->
+        <path d="M 470 190 C 510 190, 520 48, 555 48" fill="none" stroke="var(--primary)" stroke-width="1.8" marker-end="url(#arrow)" />
+        <path d="M 470 190 C 510 190, 520 138, 555 138" fill="none" stroke="var(--primary)" stroke-width="1.8" marker-end="url(#arrow)" />
+        <path d="M 470 190 C 510 190, 520 242, 555 242" fill="none" stroke="var(--primary)" stroke-width="1.8" marker-end="url(#arrow)" />
+        <path d="M 470 190 C 510 190, 520 332, 555 332" fill="none" stroke="var(--primary)" stroke-width="1.8" marker-end="url(#arrow)" />
+
+        <!-- Consumer 1 -->
+        <rect x="560" y="18" width="280" height="60" rx="8" fill="url(#consumerGrad)" stroke="var(--card-border)" stroke-width="1.2" />
+        <text x="575" y="42" font-weight="700" font-size="13" fill="var(--text)">Sub A: Inventory Service</text>
+        <text x="575" y="62" font-size="11" fill="var(--text-muted)">Stock Allocation & Warehouse Sync</text>
+
+        <!-- Consumer 2 -->
+        <rect x="560" y="108" width="280" height="60" rx="8" fill="url(#consumerGrad)" stroke="var(--card-border)" stroke-width="1.2" />
+        <text x="575" y="132" font-weight="700" font-size="13" fill="var(--text)">Sub B: Billing & Royalties</text>
+        <text x="575" y="152" font-size="11" fill="var(--text-muted)">Financial Invoicing & Payout Accounting</text>
+
+        <!-- Consumer 3 -->
+        <rect x="560" y="212" width="280" height="60" rx="8" fill="url(#consumerGrad)" stroke="var(--card-border)" stroke-width="1.2" />
+        <text x="575" y="236" font-weight="700" font-size="13" fill="var(--text)">Sub C: Real-Time ML Engine</text>
+        <text x="575" y="256" font-size="11" fill="var(--text-muted)">Dataflow / Beam User Vector Updates</text>
+
+        <!-- Consumer 4 -->
+        <rect x="560" y="302" width="280" height="60" rx="8" fill="url(#consumerGrad)" stroke="var(--card-border)" stroke-width="1.2" />
+        <text x="575" y="326" font-weight="700" font-size="13" fill="var(--text)">Sub D: Notification Service</text>
+        <text x="575" y="346" font-size="11" fill="var(--text-muted)">Push Notification & Email Dispatch</text>
+      </svg>
     </div>
 
     <h3>Real-World Industry Implementations:</h3>
@@ -168,9 +221,56 @@
     <p>A common architectural anti-pattern is assuming that having only one downstream consumer means the producer should call that consumer directly over synchronous HTTP. In production cloud engineering, routing through a dedicated queue or topic for a single subscriber provides vital operational advantages.</p>
 
     <div class="diagram-box">
-[ Producer Service ] ──► [ Message Topic / Queue ] ──► [ Single Subscriber Worker ]
-                                │
-                        (Buffer & Shock Absorber)
+      <svg viewBox="0 0 860 190" width="100%" height="190" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow2" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#f59e0b" />
+          </marker>
+          <marker id="arrow3" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#10b981" />
+          </marker>
+          <linearGradient id="producerGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.18" />
+            <stop offset="100%" stop-color="#6366f1" stop-opacity="0.08" />
+          </linearGradient>
+          <linearGradient id="queueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.22" />
+            <stop offset="100%" stop-color="#d97706" stop-opacity="0.08" />
+          </linearGradient>
+          <linearGradient id="workerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
+            <stop offset="100%" stop-color="#059669" stop-opacity="0.08" />
+          </linearGradient>
+        </defs>
+
+        <!-- Producer -->
+        <rect x="25" y="45" width="200" height="95" rx="10" fill="url(#producerGrad2)" stroke="#38bdf8" stroke-width="1.5" />
+        <text x="125" y="80" text-anchor="middle" font-weight="700" font-size="14" fill="var(--text)">Producer Service</text>
+        <text x="125" y="103" text-anchor="middle" font-size="11" fill="var(--text-muted)">High-Velocity Ingestion</text>
+        <text x="125" y="122" text-anchor="middle" font-size="10" font-weight="600" fill="#38bdf8">Surges up to 10,000 req/s</text>
+
+        <!-- Arrow Producer -> Queue -->
+        <path d="M 225 92 L 295 92" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow2)" />
+        <text x="260" y="82" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text-muted)">Push Events</text>
+
+        <!-- Queue / Buffer -->
+        <rect x="305" y="32" width="250" height="122" rx="12" fill="url(#queueGrad)" stroke="#f59e0b" stroke-width="2" />
+        <text x="430" y="67" text-anchor="middle" font-weight="800" font-size="14.5" fill="var(--text)">Queue / Topic Buffer</text>
+        <text x="430" y="88" text-anchor="middle" font-size="11" fill="var(--text-muted)">AWS SQS • GCP Pub/Sub</text>
+        <rect x="330" y="100" width="200" height="24" rx="12" fill="rgba(245, 158, 11, 0.2)" stroke="rgba(245, 158, 11, 0.4)" />
+        <text x="430" y="116" text-anchor="middle" font-size="10.5" font-weight="700" fill="#f59e0b">🛡️ Shock Absorber & Backlog</text>
+        <text x="430" y="142" text-anchor="middle" font-size="9.5" fill="var(--text-muted)">7-14 Days Message Durability</text>
+
+        <!-- Arrow Queue -> Worker -->
+        <path d="M 555 92 L 625 92" stroke="#10b981" stroke-width="2" marker-end="url(#arrow3)" />
+        <text x="590" y="82" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text-muted)">Pull Batches</text>
+
+        <!-- Single Worker -->
+        <rect x="635" y="45" width="200" height="95" rx="10" fill="url(#workerGrad)" stroke="#10b981" stroke-width="1.5" />
+        <text x="735" y="80" text-anchor="middle" font-weight="700" font-size="14" fill="var(--text)">Single Consumer</text>
+        <text x="735" y="103" text-anchor="middle" font-size="11" fill="var(--text-muted)">Protected Database Writer</text>
+        <text x="735" y="122" text-anchor="middle" font-size="10" font-weight="600" fill="#10b981">Controlled 100 req/s Rate</text>
+      </svg>
     </div>
 
     <h3>Key Benefits of Single-Subscriber Buffering:</h3>
