@@ -16,6 +16,7 @@
       --text-muted: #9ca3af;
       --primary: #6366f1;
       --primary-glow: rgba(99, 102, 241, 0.3);
+      --accent: #38bdf8;
       --nav-bg: rgba(15, 23, 42, 0.85);
       --btn-bg: rgba(255, 255, 255, 0.08);
       --btn-hover: rgba(255, 255, 255, 0.15);
@@ -29,6 +30,7 @@
       --text-muted: #64748b;
       --primary: #4f46e5;
       --primary-glow: rgba(79, 70, 229, 0.15);
+      --accent: #0284c7;
       --nav-bg: rgba(255, 255, 255, 0.85);
       --btn-bg: rgba(0, 0, 0, 0.05);
       --btn-hover: rgba(0, 0, 0, 0.1);
@@ -38,7 +40,7 @@
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; line-height: 1.6; }
     header { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(16px); background: var(--nav-bg); border-bottom: 1px solid var(--card-border); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
     .logo-container { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.1rem; }
-    .logo-badge { background: linear-gradient(135deg, var(--primary), #ec4899); color: white; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; }
+    .logo-badge { background: linear-gradient(135deg, var(--primary), #ec4899); color: white; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; text-decoration: none; }
     .header-actions { display: flex; align-items: center; gap: 12px; }
     .theme-toggle, .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: none; }
     .theme-toggle:hover, .nav-btn:hover:not(.disabled) { background: var(--btn-hover); transform: translateY(-1px); }
@@ -50,10 +52,11 @@
     .hero p { color: var(--text-muted); font-size: 1.05rem; max-width: 650px; margin: 0 auto; }
     
     .list-container { display: flex; flex-direction: column; gap: 16px; }
-    .article-card { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-decoration: none; color: var(--text); backdrop-filter: blur(12px); }
+    .article-card { display: flex; justify-content: space-between; align-items: center; padding: 22px 26px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-decoration: none; color: var(--text); backdrop-filter: blur(12px); }
     .article-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 10px 25px -5px var(--primary-glow); }
-    .article-info h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
-    .article-info p { font-size: 0.9rem; color: var(--text-muted); }
+    .article-info h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+    .article-info p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+    .card-arrow { font-size: 1.2rem; color: var(--accent); margin-left: 16px; }
     
     footer { border-top: 1px solid var(--card-border); padding: 24px; text-align: center; font-size: 0.85rem; color: var(--text-muted); background: var(--nav-bg); }
   </style>
@@ -61,7 +64,7 @@
 <body>
   <header>
     <div class="logo-container">
-      <span class="logo-badge">SOP</span>
+      <a href="index.html" class="logo-badge">SOP</a>
       <span>Cloud Architecture Northstar</span>
     </div>
     <div class="header-actions">
@@ -79,10 +82,14 @@
     </section>
 
     <div class="list-container" id="articleList">
-      <!-- Generated items will be loaded or injected here -->
-      <div class="article-card" style="justify-content: center; text-align: center;">
-        <p style="color: var(--text-muted);">Dokumentasi pertama sedang disiapkan sesuai permintaan berikutnya.</p>
-      </div>
+      <a href="fan-out-and-single-subscriber-pattern.html" class="article-card">
+        <div class="article-info">
+          <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 4px;">#1 &bull; Event-Driven Architecture</div>
+          <h3>Pola Arsitektur Fan-Out vs Single Subscriber di Cloud Computing</h3>
+          <p>Analisis mendalam pola messaging Pub/Sub: kapan menggunakan Single Subscriber (Queue Buffering) dan kapan beralih ke Fan-Out (Multi-Consumer Broadcasting) berbasis implementasi nyata di Spotify, Shopify, dan Amazon Architecture Center.</p>
+        </div>
+        <div class="card-arrow">&rarr;</div>
+      </a>
     </div>
   </main>
 

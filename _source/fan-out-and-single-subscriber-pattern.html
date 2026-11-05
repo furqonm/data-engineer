@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pola Arsitektur Fan-Out vs Single Subscriber di Cloud Computing | SOP Northstar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(17, 24, 39, 0.75);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.3);
+      --accent: #38bdf8;
+      --nav-bg: rgba(15, 23, 42, 0.85);
+      --btn-bg: rgba(255, 255, 255, 0.08);
+      --btn-hover: rgba(255, 255, 255, 0.15);
+      --code-bg: #1e293b;
+      --callout-bg: rgba(99, 102, 241, 0.1);
+      --callout-border: rgba(99, 102, 241, 0.35);
+      --table-header: rgba(30, 41, 59, 0.7);
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --card-border: rgba(0, 0, 0, 0.08);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --primary: #4f46e5;
+      --primary-glow: rgba(79, 70, 229, 0.15);
+      --accent: #0284c7;
+      --nav-bg: rgba(255, 255, 255, 0.9);
+      --btn-bg: rgba(0, 0, 0, 0.05);
+      --btn-hover: rgba(0, 0, 0, 0.1);
+      --code-bg: #f1f5f9;
+      --callout-bg: rgba(79, 70, 229, 0.06);
+      --callout-border: rgba(79, 70, 229, 0.25);
+      --table-header: rgba(241, 245, 249, 0.9);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; line-height: 1.7; }
+    
+    header { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(16px); background: var(--nav-bg); border-bottom: 1px solid var(--card-border); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .logo-container { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.05rem; }
+    .logo-badge { background: linear-gradient(135deg, var(--primary), #ec4899); color: white; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; text-decoration: none; }
+    
+    .nav-controls { display: flex; align-items: center; gap: 10px; }
+    .theme-toggle, .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border); cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+    .theme-toggle:hover, .nav-btn:hover:not(.disabled) { background: var(--btn-hover); transform: translateY(-1px); }
+    .nav-btn.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+
+    main { max-width: 900px; width: 92%; margin: 40px auto 60px; flex: 1; }
+    
+    .breadcrumb { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; display: flex; gap: 8px; align-items: center; }
+    .breadcrumb a { color: var(--accent); text-decoration: none; }
+    
+    h1 { font-size: 2.3rem; font-weight: 800; line-height: 1.25; margin-bottom: 16px; letter-spacing: -0.03em; }
+    .meta-tag { display: inline-flex; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--primary); background: var(--callout-bg); border: 1px solid var(--callout-border); padding: 4px 12px; border-radius: 20px; margin-bottom: 28px; }
+    
+    h2 { font-size: 1.5rem; font-weight: 700; margin: 38px 0 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; letter-spacing: -0.02em; }
+    h3 { font-size: 1.2rem; font-weight: 600; margin: 24px 0 12px; }
+    p { margin-bottom: 18px; font-size: 1rem; color: var(--text); }
+    
+    .callout { background: var(--callout-bg); border-left: 4px solid var(--primary); padding: 18px 20px; border-radius: 0 12px 12px 0; margin: 24px 0; font-size: 0.95rem; }
+    .callout-title { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    
+    .diagram-box { background: var(--code-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 22px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; overflow-x: auto; margin: 24px 0; line-height: 1.5; color: var(--text); }
+    
+    table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 0.95rem; background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--card-border); }
+    th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--card-border); }
+    th { background: var(--table-header); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    tr:last-child td { border-bottom: none; }
+    
+    ul, ol { margin-left: 24px; margin-bottom: 20px; }
+    li { margin-bottom: 8px; }
+    
+    .source-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 22px; margin-top: 48px; }
+    .source-box h4 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+    .source-list { list-style: none; margin: 0; }
+    .source-list li { margin-bottom: 10px; font-size: 0.9rem; }
+    .source-list a { color: var(--accent); text-decoration: none; word-break: break-all; }
+    .source-list a:hover { text-decoration: underline; }
+    
+    .footer-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--card-border); }
+
+    footer { border-top: 1px solid var(--card-border); padding: 24px; text-align: center; font-size: 0.85rem; color: var(--text-muted); background: var(--nav-bg); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <a href="index.html" class="logo-badge">SOP</a>
+      <span>Architecture Northstar</span>
+    </div>
+    <div class="nav-controls">
+      <a id="prevBtnHeader" href="index.html" class="nav-btn">
+        <span>&larr;</span> Indeks
+      </a>
+      <a id="nextBtnHeader" href="#" class="nav-btn disabled">
+        Berikutnya <span>&rarr;</span>
+      </a>
+      <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span id="themeIcon">☀️</span>
+        <span id="themeText">Light</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div class="breadcrumb">
+      <a href="index.html">Architecture Northstar</a>
+      <span>/</span>
+      <span>Messaging Patterns</span>
+      <span>/</span>
+      <span>Fan-Out vs Single Subscriber</span>
+    </div>
+
+    <div class="meta-tag">
+      <span>Domain: Event-Driven Architecture &bull; GCP Pub/Sub &bull; AWS SNS/SQS</span>
+    </div>
+
+    <h1>Pola Arsitektur Fan-Out vs Single Subscriber di Cloud Computing</h1>
+    <p>Dalam desain sistem terdistribusi modern berbasis <em>Event-Driven Architecture</em> (EDA), pemilihan mekanisme pengiriman pesan antar-layanan sering kali menentukan skalabilitas, fault isolation, dan kemudahan evolusi sistem di masa depan.</p>
+
+    <div class="callout">
+      <div class="callout-title">
+        <span>📌</span> Definisi Singkat Arsitektur
+      </div>
+      <p><strong>Fan-Out Pattern:</strong> Pola <em>one-to-many</em> di mana sebuah event message dikirimkan ke satu Topic, lalu didistribusikan secara independen dan paralel ke banyak antrean/subscriber berbeda tanpa saling memblokir.</p>
+      <p style="margin-bottom: 0;"><strong>Single Subscriber Pattern:</strong> Pola di mana sebuah antrean atau topic hanya memiliki satu entitas downstream yang memproses pesan (point-to-point / worker queue), sering kali dimanfaatkan untuk <em>load buffering</em> atau perataan beban (<em>compaction/rate limiting</em>).</p>
+    </div>
+
+    <h2>1. Arsitektur Fan-Out (One-to-Many Broadcasting)</h2>
+    <p>Ketika sebuah tindakan bisnis terjadi (misalnya pengguna melakukan checkout barang atau memutar lagu), banyak domain bisnis berbeda yang berkepentingan terhadap kejadian tersebut tanpa perlu sang produsen tahu siapa saja penerimanya.</p>
+
+    <div class="diagram-box">
+[ Publisher / Producer ]
+          │
+          ▼  (1 Event: e.g. "OrderPlaced" / "TrackPlayed")
+  ┌───────────────┐
+  │ Pub/Sub Topic │  (GCP Cloud Pub/Sub Topic / AWS SNS Topic)
+  └───────┬───────┘
+          │
+          ├──► (Subscription A / SQS 1) ──► [ Inventory / Stock Service ]
+          ├──► (Subscription B / SQS 2) ──► [ Billing & Royalty Accounting ]
+          ├──► (Subscription C / SQS 3) ──► [ Real-time ML Recommendation Engine ]
+          └──► (Subscription D / SQS 4) ──► [ Notification Service (Email/SMS) ]
+    </div>
+
+    <h3>Kasus Nyata di Industri (Real-World Case):</h3>
+    <ul>
+      <li>
+        <strong>Spotify (Streaming Playback Pipeline):</strong><br>
+        Ketika pengguna menekan tombol Play, layanan pemutar mengirim event <code>TrackPlayed</code> ke Google Cloud Pub/Sub. Dari satu event ini, arsitektur <em>fan-out</em> menduplikasi pesan ke tiga kanal independen:
+        <ol>
+          <li><em>Subscription 1 (Streaming ML / Apache Beam):</em> Menghitung riwayat rekomendasi pengguna (fitur <em>Discover Weekly</em>).</li>
+          <li><em>Subscription 2 (Royalty Accounting):</em> Menghitung hak cipta dan royalti artis per putaran lagu.</li>
+          <li><em>Subscription 3 (Social Feed):</em> Memperbarui status aktivitas ke teman di aplikasi.</li>
+        </ol>
+      </li>
+      <li>
+        <strong>Shopify (Merchant Event Distribution):</strong><br>
+        Shopify memanfaatkan Google Cloud Pub/Sub untuk mendistribusikan jutaan webhook event (seperti <code>orders/create</code>). Melalui Fan-Out, event order dialirkan serentak ke sistem inventaris toko, kalkulasi analitik merchant, dan fraud detection.
+      </li>
+    </ul>
+
+    <h2>2. Pola Single Subscriber (Kapan dan Mengapa Digunakan?)</h2>
+    <p>Ada anggapan keliru bahwa jika hanya ada satu pemroses di hilir, produsen cukup langsung memanggil API HTTP konsumen secara langsung (Point-to-Point). Namun dalam standar rekayasa cloud (SOP), pola <strong>Single Subscriber dengan Message Queue</strong> justru sangat krusial.</p>
+
+    <div class="diagram-box">
+[ Producer Service ] ──► [ Message Topic / Queue ] ──► [ Single Subscriber Worker ]
+                                │
+                        (Buffer & Shock Absorber)
+    </div>
+
+    <h3>Mengapa Menggunakan Buffer Topic/Queue untuk 1 Subscriber?</h3>
+    <ol>
+      <li>
+        <strong>Shock Absorber / Rate Limiting (Peredam Lonjakan Beban):</strong><br>
+        Jika 10.000 pesanan masuk dalam 1 detik (misal flash sale), database konsumen hilir akan mati jika ditembak HTTP langsung. Dengan meletakkan antrean di depan Single Subscriber, worker dapat mengambil (pull) pesan dengan kecepatan yang mampu ditangani database (misal 50 pesan/detik) tanpa ada satu pun pesanan yang hilang.
+      </li>
+      <li>
+        <strong>Fault Isolation & Zero Downtime Deployment:</strong><br>
+        Jika layanan subscriber harus restart, mengalami crash, atau sedang di-deploy, pesan tetap aman tersimpan di storage Pub/Sub / SQS (hingga 7–14 hari). Begitu subscriber pulih, ia melanjutkan pemrosesan tanpa publisher mengalami error 500.
+      </li>
+      <li>
+        <strong>Future-Proofing (Evolusi Day-2 Tanpa Merombak Produsen):</strong><br>
+        Jika arsitektur dimulai dengan pola Topic $\rightarrow$ Single Subscriber (seperti SNS $\rightarrow$ 1 SQS), ketika bisnis membutuhkan subscriber ke-2 (misal audit log atau fraud detection), tim infrastruktur cukup mendaftarkan subscription baru ke topic tersebut. <strong>Tidak ada 1 baris kode pun yang perlu diubah pada aplikasi produsen!</strong>
+      </li>
+    </ol>
+
+    <h2>3. Perbandingan Strategis: Fan-Out vs Single Subscriber</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Karakteristik</th>
+          <th>Fan-Out Architecture</th>
+          <th>Single Subscriber Queue</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Rasio Pengiriman</strong></td>
+          <td>1 ke N (Broadcast / One-to-Many)</td>
+          <td>1 ke 1 (Point-to-Point / Single Consumer)</td>
+        </tr>
+        <tr>
+          <td><strong>Teknologi Cloud Umum</strong></td>
+          <td>GCP Cloud Pub/Sub, AWS SNS + Multiple SQS</td>
+          <td>AWS SQS langsung, GCP Pub/Sub 1 Subscription, RabbitMQ</td>
+        </tr>
+        <tr>
+          <td><strong>Tujuan Utama</strong></td>
+          <td>Dekopling multi-domain bisnis, paralelisme fungsi</td>
+          <td>Buffering, rate limiting, perlindungan database hilir</td>
+        </tr>
+        <tr>
+          <td><strong>Dampak Kegagalan Konsumen</strong></td>
+          <td>Terisolasi penuh; jika 1 subscriber gagal, subscriber lain tidak terganggu</td>
+          <td>Pesan menumpuk di antrean hingga worker pulih</td>
+        </tr>
+        <tr>
+          <td><strong>Biaya & Kompleksitas</strong></td>
+          <td>Sedikit lebih tinggi (biaya delivery dikalikan jumlah subscriber)</td>
+          <td>Paling minimal dan efisien untuk workflow tunggal</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="source-box">
+      <h4>📚 Referensi & Sumber Resmi (Non-AI Generated)</h4>
+      <ul class="source-list">
+        <li>
+          <strong>Google Cloud Architecture Center:</strong> 
+          <a href="https://cloud.google.com/pubsub/docs/overview" target="_blank" rel="noopener">Cloud Pub/Sub Overview & Architectural Patterns (Fan-out Subscriptions)</a>
+        </li>
+        <li>
+          <strong>Spotify Engineering:</strong> 
+          <a href="https://engineering.atspotify.com/" target="_blank" rel="noopener">Spotify Tech Talks: Event-driven architecture scaling with Apache Beam and Cloud Pub/Sub</a>
+        </li>
+        <li>
+          <strong>Shopify Engineering Blog:</strong> 
+          <a href="https://shopify.engineering/" target="_blank" rel="noopener">High-throughput Webhook processing pipelines using Google Cloud Pub/Sub</a>
+        </li>
+        <li>
+          <strong>AWS Architecture Center:</strong> 
+          <a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/modern-application-development/fan-out.html" target="_blank" rel="noopener">Fanout SQS-SNS Messaging Architecture & Compaction Patterns</a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="footer-nav">
+      <a id="prevBtnFooter" href="index.html" class="nav-btn">
+        <span>&larr;</span> Halaman Indeks
+      </a>
+      <a id="nextBtnFooter" href="#" class="nav-btn disabled">
+        Materi Berikutnya <span>&rarr;</span>
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    <p>Architecture Northstar Knowledge Base &bull; Host: trainocate-global.s3-website-us-east-1.amazonaws.com</p>
+  </footer>
+
+  <script>
+    function getStoredTheme() {
+      return localStorage.getItem('sop_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('sop_theme', theme);
+      const icon = document.getElementById('themeIcon');
+      const text = document.getElementById('themeText');
+      if (theme === 'light') {
+        icon.textContent = '🌙';
+        text.textContent = 'Dark';
+      } else {
+        icon.textContent = '☀️';
+        text.textContent = 'Light';
+      }
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'light' ? 'dark' : 'light');
+    }
+
+    applyTheme(getStoredTheme());
+  </script>
+</body>
+</html>

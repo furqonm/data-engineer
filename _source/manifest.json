@@ -1,2 +1,10 @@
 [
+  {
+    "id": "1",
+    "slug": "fan-out-and-single-subscriber-pattern",
+    "filename": "fan-out-and-single-subscriber-pattern.html",
+    "title": "Pola Arsitektur Fan-Out vs Single Subscriber di Cloud Computing",
+    "description": "Analisis mendalam pola messaging Pub/Sub: kapan menggunakan Single Subscriber (Queue Buffering) dan kapan beralih ke Fan-Out (Multi-Consumer Broadcasting) berbasis implementasi nyata di Spotify, Shopify, dan Amazon Architecture Center.",
+    "created_at": "2026-11-05"
+  }
 ]
